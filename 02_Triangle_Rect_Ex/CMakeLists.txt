@@ -37,6 +37,21 @@ SOURCE_GROUP("include" FILES ${HEAD_LIST})
 FILE(GLOB  SHADER_LIST "./shader/*.hlsl")
 SOURCE_GROUP("shader" FILES ${SHADER_LIST})
 
+# 设置着色器类型
+foreach(v ${SHADER_LIST})
+    STRING( REGEX MATCH  ".*ps.hlsl" prjNamePS ${v} )
+    IF(NOT(prjNamePS STREQUAL ""))
+        message("--${v} set PROPERTIES - Pixel")
+        set_source_files_properties(${v} PROPERTIES VS_SHADER_TYPE Pixel)
+    ENDIF()
+
+    STRING( REGEX MATCH  ".*vs.hlsl" prjNameVS ${v} )
+    IF(NOT(prjNameVS STREQUAL ""))
+        message("--${v} set PROPERTIES - Vertex")
+        set_source_files_properties(${v} PROPERTIES VS_SHADER_TYPE Vertex)
+    ENDIF()
+endforeach()
+
 SET(ALL_SOURCES
 ${SRC_LIST}
 ${HEAD_LIST}
