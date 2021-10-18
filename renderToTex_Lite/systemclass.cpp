@@ -34,20 +34,6 @@ bool SystemClass::Initialize()
 	// Initialize the windows api.
 	InitializeWindows(screenWidth, screenHeight);
 
-	// Create the input object.  This object will be used to handle reading the keyboard input from the user.
-	//m_Input = new InputClass;
-	//if(!m_Input)
-	//{
-	//	return false;
-	//}
-
-	// Initialize the input object.
-	//result = m_Input->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight);
-	//if(!result)
-	//{
-	//	MessageBox(m_hwnd, L"Could not initialize the input object.", L"Error", MB_OK);
-	//	return false;
-	//}
 
 	// Create the graphics object.  This object will handle rendering all the graphics for this application.
 	m_Graphics = new GraphicsClass;

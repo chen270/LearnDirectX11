@@ -237,6 +237,7 @@ bool GraphicsClass::Render()
 	m_D3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Render the scene as normal to the back buffer.
+	//渲染主界面
 	result = RenderScene();
 	if(!result)
 	{
@@ -252,6 +253,7 @@ bool GraphicsClass::Render()
 	m_D3D->GetOrthoMatrix(orthoMatrix);
 
 	// Put the debug window vertex and index buffers on the graphics pipeline to prepare them for drawing.
+	//渲染RTT窗口
 	result = m_DebugWindow->Render(m_D3D->GetDeviceContext(), 50, 50);
 	if(!result)
 	{
@@ -259,6 +261,7 @@ bool GraphicsClass::Render()
 	}
 
 	// Render the debug window using the texture shader.
+	//渲染RTT窗口界面
 	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_DebugWindow->GetIndexCount(), worldMatrix, viewMatrix, 
 									 orthoMatrix, m_RenderTexture->GetShaderResourceView());
 	if(!result)
