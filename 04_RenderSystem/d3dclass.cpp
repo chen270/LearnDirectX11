@@ -482,7 +482,7 @@ const D3D11_INPUT_ELEMENT_DESC D3dClass::VertexPosColor::inputLayout[2] = {
 	{ "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 };
 
-int D3dClass::InitShader()
+int D3dClass::InitShader(WCHAR* vsCso, WCHAR* psCso)
 {
 	ID3DBlob* pBlob;
 	m_pVertexShader = nullptr;
@@ -490,7 +490,7 @@ int D3dClass::InitShader()
 	m_pPixelShader = nullptr;
 
 	// 1.创建顶点着色器
-	HR(D3DReadFileToBlob(L"../bin/triangle_vs.cso", &pBlob));
+	HR(D3DReadFileToBlob(vsCso, &pBlob));
 	HR(m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(),pBlob->GetBufferSize(), nullptr, &m_pVertexShader));
 
 	// 2.创建并绑定顶点布局
@@ -499,7 +499,7 @@ int D3dClass::InitShader()
 		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &m_pInputLayout));
 
 	// 3.创建像素着色器
-	HR(D3DReadFileToBlob(L"../bin/triangle_ps.cso", &pBlob));
+	HR(D3DReadFileToBlob(psCso, &pBlob));
 	HR(m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pPixelShader));
 
 	return 0;

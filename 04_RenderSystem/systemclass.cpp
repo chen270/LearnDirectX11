@@ -25,7 +25,8 @@ int SystemClass::Init()
 	res = d3d->InitD3d11(this->m_hwnd, m_width, m_height);
 	CHECK_RES(res, "InitD3d11 error");
 
-	res = d3d->InitShader();
+	//res = d3d->InitShader(L"../bin/triangle_vs.cso", L"../bin/triangle_ps.cso");
+	res = d3d->InitShader(L"../bin/vs.cso", L"../bin/ps.cso");
 	//res = d3d->InitResource();
 	d3d->InitTriangle();
 

@@ -17,7 +17,7 @@ public:
 	D3dClass& operator=(const D3dClass &) = delete;
 
 	int InitD3d11(HWND hwnd, int screenWidth, int screenHeight);
-	int InitShader();
+	int InitShader(WCHAR* vsCso, WCHAR* psCso);
 	int InitResource();
 	void DrawScene();
 

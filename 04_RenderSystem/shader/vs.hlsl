@@ -10,11 +10,11 @@ cbuffer CBuf
     /*row_major*/ matrix transform;
 }
 
-VSOut main(float3 pos : POSITIONT, float4 color : COLOR)
+VSOut main(float3 pos : POSITION, float4 color : COLOR)
 {
     VSOut vso;
-    //vso.pos = float4(pos, 1.0f);
-    vso.pos = mul(float4(pos, 1.0f), transform);
+    vso.pos = float4(pos, 1.0f);
+    //vso.pos = mul(float4(pos, 1.0f), transform);
     vso.color = color;
     return vso;
 }
