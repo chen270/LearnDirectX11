@@ -52,7 +52,12 @@ int SystemClass::Run()
 			//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
 			d3d->ClearBuffer(0.5f,0.5f, 0.5f);
 			//d3d->DrawTriangle();
-			d3d->DrawRect(m_time.Peek());
+			//d3d->DrawRect(m_time.Peek());
+			d3d->DrawCube(
+				-m_time.Peek(),
+				0.0f,
+				0.0f
+			);
 			//d3d->DrawRectWithTex();
 			d3d->EndFrame();
 		}

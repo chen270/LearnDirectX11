@@ -129,6 +129,189 @@ int D3dClass::DrawTriangle()
 	return 0;
 }
 
+int D3dClass::DrawCube(float angle, float x, float z)
+{
+	HRESULT hr = S_FALSE;
+	Vertex vertices[] =			// 顶点数组
+	{
+		{DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f),{255, 0, 0, 1}},
+		{DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),{0, 255, 0, 1} },
+		{DirectX::XMFLOAT3(-1.0f, 1.0f, -1.0f),{0, 0, 255, 1} },
+		{DirectX::XMFLOAT3(1.0f, 1.0f, -1.0f), {255, 255, 0, 1} },
+		{DirectX::XMFLOAT3(-1.0f, -1.0f, 1.0f), {255, 0, 255, 1} },
+		{DirectX::XMFLOAT3(1.0f, -1.0f, 1.0f), {0, 255, 255, 1} },
+		{DirectX::XMFLOAT3(-1.0f, 1.0f, 1.0f), {0, 0, 0, 1} },
+		{DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f), {255, 255, 255, 1} },
+	};
+
+	//IBO
+	//
+	const unsigned short indices[] =
+	{
+		0,2,1, 2,3,1,
+		1,3,5, 3,7,5,
+		2,6,3, 3,6,7,
+		4,5,7, 4,7,6,
+		0,4,2, 2,4,6,
+		0,1,4, 1,5,4
+	};
+	const int indexCount = sizeof(indices) / sizeof(unsigned short);
+
+	//VBO-start ***********************************************/
+	//1.1 顶点缓冲描述
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
+	vertexBufferDesc.ByteWidth = sizeof(vertices);	// 大小（我们有三个顶点）
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// Bind
+
+	//1.2 顶点数据
+	D3D11_SUBRESOURCE_DATA vsData;
+	ZeroMemory(&vsData, sizeof(D3D11_SUBRESOURCE_DATA));
+	vsData.pSysMem = vertices;
+
+	//1.3 创建顶点缓冲区
+	ID3D11Buffer *pVBO = nullptr;
+	hr = pDevice->CreateBuffer(&vertexBufferDesc, &vsData, &pVBO);
+	CHECK_D3D_ERROR(hr);
+
+	//1.4 为顶点缓冲区设置 CPU 描述符handle，分配到管道
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	pContext->IASetVertexBuffers(0, 1, &pVBO, &stride, &offset);
+	//VBO-end *************************************************/
+
+	//start ***********************************************/
+	//2.1 索引缓冲描述
+	D3D11_BUFFER_DESC indexBufferDesc;
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.ByteWidth = sizeof(indices);
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+	indexBufferDesc.StructureByteStride = sizeof(unsigned short);
+
+	//2.2 索引数据
+	D3D11_SUBRESOURCE_DATA indexData;
+	indexData.pSysMem = indices;
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+	//2.3 创建索引缓冲区
+	ID3D11Buffer *pIBO = nullptr;
+	hr = pDevice->CreateBuffer(&indexBufferDesc, &indexData, &pIBO);
+	CHECK_D3D_ERROR(hr);
+
+	//2.4 为索引缓冲区设置 CPU 描述符handle，分配到管道
+	pContext->IASetIndexBuffer(pIBO, DXGI_FORMAT_R16_UINT, 0);
+	//end *************************************************/
+
+	//3.创建 vertex shader
+	ID3D11VertexShader* pVertexShader;
+	ID3DBlob* pBlob;//存储shader中的内容
+	hr = D3DReadFileToBlob(L"../bin/vs.cso", &pBlob);
+	CHECK_D3D_ERROR(hr);
+	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(),
+		pBlob->GetBufferSize(), nullptr, &pVertexShader);
+	CHECK_D3D_ERROR(hr);
+
+	//4.绑定 vertex shader 到渲染管线
+	pContext->VSSetShader(pVertexShader, nullptr, 0);
+
+	//5.告诉CPU如何从shader中读取数据
+	ID3D11InputLayout* pInputLayout;
+	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
+	const D3D11_INPUT_ELEMENT_DESC layout[]{
+		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
+
+	};
+	const UINT numElements = ARRAYSIZE(layout);
+	hr = pDevice->CreateInputLayout(layout, numElements,
+		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
+	CHECK_D3D_ERROR(hr);
+
+	//6.绑定 layout
+	pContext->IASetInputLayout(pInputLayout);
+
+	//end *************************************************/
+
+	//start ***********************************************/
+	struct ConstantBuffer
+	{
+		DirectX::XMMATRIX transform;
+	};
+
+	//常数缓存
+	const ConstantBuffer cb{
+	{
+		DirectX::XMMatrixTranspose(
+				DirectX::XMMatrixRotationZ(angle) *
+				DirectX::XMMatrixRotationX(angle) *
+				DirectX::XMMatrixTranslation(x,0.0f,z + 4.0f) *
+				DirectX::XMMatrixPerspectiveLH(1.0f,3.0f / 4.0f,0.5f,10.0f)
+		)
+	}
+	};
+
+
+	//创建资源
+	ID3D11Buffer *pCBO = nullptr;
+	D3D11_BUFFER_DESC cbd;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;//设置成常数缓存标志位
+	cbd.Usage = D3D11_USAGE_DYNAMIC;//需要每帧刷新
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.ByteWidth = sizeof(cb);
+	cbd.StructureByteStride = 0;
+
+	//常数缓存数据
+	D3D11_SUBRESOURCE_DATA csData;
+	csData.pSysMem = &cb;
+	csData.SysMemPitch = 0;
+	csData.SysMemSlicePitch = 0;
+
+	pDevice->CreateBuffer(&cbd, &csData, &pCBO);
+
+	//绑定管道
+	pContext->VSSetConstantBuffers(0, 1, &pCBO);
+
+	//end *************************************************/
+
+	//start ***********************************************/
+	//7.创建 pixel shader
+	ID3D11PixelShader* pPixelShader;
+	ID3DBlob* pBlob_PS;//存储shader中的内容
+	hr = D3DReadFileToBlob(L"../bin/ps.cso", &pBlob_PS);
+	CHECK_D3D_ERROR(hr);
+	hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
+		pBlob_PS->GetBufferSize(), nullptr, &pPixelShader);
+	CHECK_D3D_ERROR(hr);
+
+	//8.绑定 pixel shader 到渲染管线
+	pContext->PSSetShader(pPixelShader, nullptr, 0);
+	//end *************************************************/
+
+	//9.指定输出目标（渲染对象）
+	pContext->OMSetRenderTargets(1, &pRenderTargetView, nullptr);
+
+	//三角形list
+	pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	//10.设置视口变换
+	D3D11_VIEWPORT vp;// 视口
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	vp.Width = static_cast<float>(m_screenWidth);
+	vp.Height = static_cast<float>(m_screenHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	pContext->RSSetViewports(1, &vp);
+
+	pContext->DrawIndexed(indexCount, 0, 0);
+}
+
 int D3dClass::DrawRect(float angle)
 {
 	HRESULT hr = S_FALSE;
@@ -234,14 +417,29 @@ int D3dClass::DrawRect(float angle)
 	};
 
 	//常数缓存
+	//const ConstantBuffer cb{
+	//	{
+	//		(m_screenHeight/m_screenWidth)*cos(angle), sin(angle), 0.0f, 0.0f,
+	//		(m_screenHeight / m_screenWidth)*-sin(angle),cos(angle), 0.0f, 0.0f,
+	//		0.0f,		0.0f,		1.0f, 0.0f,
+	//		0.0f,		0.0f,		0.0f, 1.0f,
+	//	}
+	//};
+	//const ConstantBuffer cb{
+	//	{
+	//		DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationZ(angle), 
+	//		DirectX::XMMatrixScaling(m_screenHeight / m_screenWidth, 1.0f, 1.0f))
+	//	}
+	//};
 	const ConstantBuffer cb{
-		{
-			(m_screenHeight/m_screenWidth)*cos(angle), sin(angle), 0.0f, 0.0f,
-			(m_screenHeight / m_screenWidth)*-sin(angle),cos(angle), 0.0f, 0.0f,
-			0.0f,		0.0f,		1.0f, 0.0f,
-			0.0f,		0.0f,		0.0f, 1.0f,
-		}
+	{
+		DirectX::XMMatrixTranspose(
+			DirectX::XMMatrixRotationZ(angle) * 
+			DirectX::XMMatrixScaling(m_screenHeight / m_screenWidth, 1.0f, 1.0f)
+		)
+	}
 	};
+
 
 	//创建资源
 	ID3D11Buffer *pCBO = nullptr;

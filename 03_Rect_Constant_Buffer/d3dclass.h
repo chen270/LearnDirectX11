@@ -19,6 +19,7 @@ public:
 	int EndFrame();
 	int ClearBuffer(float r, float g, float b) noexcept;
 	int DrawTriangle();
+	int DrawCube(float angle, float x, float z);
 	int DrawRect(float angle);
 	int DrawRectWithTex();
 
