@@ -35,6 +35,7 @@ public:
 	void InitRect();
 	void UpdateRectRotate(float angle);
 	void InitRectWithTex();
+	void InitShaderTexEx();
 private:
 	bool m_vsync_enabled;
 	int m_screenWidth;

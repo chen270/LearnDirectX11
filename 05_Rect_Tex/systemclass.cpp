@@ -27,11 +27,14 @@ int SystemClass::Init()
 
 	//res = d3d->InitShader(L"../bin/triangle_vs.cso", L"../bin/triangle_ps.cso");
 	//res = d3d->InitShader(L"../bin/vs.cso", L"../bin/ps.cso");
-	res = d3d->InitShaderTex(L"../bin/tex_vs.cso", L"../bin/tex_ps.cso");
-	//res = d3d->InitResource();
-	//d3d->InitTriangle();
-	d3d->InitRectWithTex();
+	//res = d3d->InitShaderTex(L"../bin/tex_vs.cso", L"../bin/tex_ps.cso");
+	////res = d3d->InitResource();
+	////d3d->InitTriangle();
+	//d3d->InitRectWithTex();
+	d3d->InitShaderTexEx();
+	d3d->SetTex(L"../data/cheese.jpg");
 
+	
 	return 0;
 }
 

@@ -259,12 +259,16 @@ int D3dClass::SetTex(WCHAR* filename)
 	m_pContext->PSSetShaderResources(0, 1, &pShaderResourceView);
 	m_pContext->PSSetSamplers(0, 1, &pSamplerState);
 
+
+	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);	//set vs
+	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);	//set ps
 	return 0;
 }
 
 void D3dClass::DrawScene()
 {
 	m_pContext->DrawIndexed(m_indexCount, 0, 0);
+	//m_pContext->Draw(6, 0);
 }
 
 void D3dClass::InitTriangle()
@@ -272,13 +276,15 @@ void D3dClass::InitTriangle()
 	// 设置三角形顶点
 	VertexPosColor vertices[] =
 	{
-		{DirectX::XMFLOAT3(-0.1f, -0.1f, 0.3f),{255, 0, 0, 1}},
-		{DirectX::XMFLOAT3(-0.1f, 0.1f, 0.3f),{0, 255, 0, 1} },
-		{DirectX::XMFLOAT3(0.1f, -0.1f, 0.3f),{0, 0, 255, 1} },
+		{DirectX::XMFLOAT3(-0.1f, -0.1f, -0.1f),{255, 0, 0, 1}},
+		{DirectX::XMFLOAT3(-0.1f, 0.1f, -0.1f),{0, 255, 0, 1} },
+		{DirectX::XMFLOAT3(0.1f, -0.1f, -0.1f),{0, 0, 255, 1} },
 	};
 
 	//IBO
 	unsigned short indices[] = { 0,1,2};
+
+
 
 	InitResourceEx(vertices, 3, indices, 3);
 }
@@ -303,21 +309,29 @@ void D3dClass::InitRect()
 void D3dClass::InitRectWithTex()
 {
 	// 设置三角形顶点
-	VertexPosTex vertices[] =
-	{
-		//{DirectX::XMFLOAT3(-0.1f, -0.1f, 0.3f),DirectX::XMFLOAT2(0.0f, 1.0f) },
-		//{DirectX::XMFLOAT3(-0.1f, 0.1f, 0.3f), DirectX::XMFLOAT2(0.0f, 0.0f) },
-		//{DirectX::XMFLOAT3(0.1f, -0.1f, 0.3f), DirectX::XMFLOAT2(1.0f, 1.0f) },
-		//{DirectX::XMFLOAT3(0.1f, 0.1f, 0.3f),  DirectX::XMFLOAT2(1.0f, 0.0f) },
-		{ DirectX::XMFLOAT3(0.0f, 0.5f, 0.3f) , DirectX::XMFLOAT2(0.0f,1.0f) },
-		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.3f) , DirectX::XMFLOAT2(1.0f,-1.0f) },
-		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.3f) , DirectX::XMFLOAT2(-1.0f,1.0f) }
+	//VertexPosTex vertices[] =
+	//{
+	//	//{DirectX::XMFLOAT3(-0.1f, -0.1f, 0.3f),DirectX::XMFLOAT2(0.0f, 1.0f) },
+	//	//{DirectX::XMFLOAT3(-0.1f, 0.1f, 0.3f), DirectX::XMFLOAT2(0.0f, 0.0f) },
+	//	//{DirectX::XMFLOAT3(0.1f, -0.1f, 0.3f), DirectX::XMFLOAT2(1.0f, 1.0f) },
+	//	//{DirectX::XMFLOAT3(0.1f, 0.1f, 0.3f),  DirectX::XMFLOAT2(1.0f, 0.0f) },
+	//	{ DirectX::XMFLOAT3(0.0f, 0.5f, 1.9f) , DirectX::XMFLOAT2(0.0f,1.0f) },
+	//	{ DirectX::XMFLOAT3(0.5f, -0.5f, 1.9f) , DirectX::XMFLOAT2(1.0f,-1.0f) },
+	//	{ DirectX::XMFLOAT3(-0.5f, -0.5f, 1.9f) , DirectX::XMFLOAT2(-1.0f,1.0f) }
+	//};
+
+	////IBO
+	unsigned short indices[] = { 0,1,2,
+								 0,2,3 };
+
+	VertexPosTex vertices[]{
+		{ DirectX::XMFLOAT3(-0.3f, -0.3f, 1.0f), DirectX::XMFLOAT2(0.0f,1.0f) },
+		{ DirectX::XMFLOAT3(-0.3f,  0.3f, 1.0f), DirectX::XMFLOAT2(0.0f,0.0f) },
+		{ DirectX::XMFLOAT3(0.3f,  0.3f,  1.0f) , DirectX::XMFLOAT2(1.0f,0.0f) },
+		{ DirectX::XMFLOAT3(0.3f, -0.3f,  1.0f), DirectX::XMFLOAT2(1.0f,1.0f) }
 	};
 
-	//IBO
-	unsigned short indices[] = { 0,1,2, };
-								 //1,3,2 };
-	InitResourceTex(vertices, 3, indices, 3);
+	InitResourceTex(vertices, 4, indices, 6);
 }
 
 void D3dClass::UpdateRectRotate(float angle)
@@ -425,7 +439,7 @@ int D3dClass::InitResourceTex(VertexPosTex* vertices, int verLen, unsigned short
 	m_pContext->IASetIndexBuffer(m_pIBO, DXGI_FORMAT_R16_UINT, 0);
 
 	//绑定管道
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pIBO);
+	//m_pContext->VSSetConstantBuffers(0, 1, &m_pIBO);
 
 	// 设置图元类型，设定输入布局
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -655,6 +669,121 @@ int D3dClass::InitShaderTex(WCHAR* vsCso, WCHAR* psCso)
 	return 0;
 }
 
+void D3dClass::InitShaderTexEx()
+{
+	////IBO
+	unsigned short indices[] = { 0,1,2,
+								 0,2,3 };
+
+	VertexPosTex vertices[]{
+		{ DirectX::XMFLOAT3(-0.3f, -0.3f, 1.0f), DirectX::XMFLOAT2(0.0f,1.0f) },
+		{ DirectX::XMFLOAT3(-0.3f,  0.3f, 1.0f), DirectX::XMFLOAT2(0.0f,0.0f) },
+		{ DirectX::XMFLOAT3(0.3f,  0.3f,  1.0f) , DirectX::XMFLOAT2(1.0f,0.0f) },
+		{ DirectX::XMFLOAT3(0.3f, -0.3f,  1.0f), DirectX::XMFLOAT2(1.0f,1.0f) }
+	};
+
+	//VBO-start ***********************************************/
+	//1.1 顶点缓冲描述
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
+	vertexBufferDesc.ByteWidth = sizeof(VertexPosTex) * 4;	// 大小（我们有三个顶点）
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// Bind
+
+	//1.2 顶点数据
+	D3D11_SUBRESOURCE_DATA vsData;
+	ZeroMemory(&vsData, sizeof(D3D11_SUBRESOURCE_DATA));
+	vsData.pSysMem = vertices;
+
+	//1.3 创建顶点缓冲区
+	ID3D11Buffer *pVertexBufferObject = nullptr;
+	(m_pDevice->CreateBuffer(&vertexBufferDesc, &vsData, &pVertexBufferObject));
+	//VBO-end *************************************************/
+
+	//IBO-start ***********************************************/
+	// 设置索引缓冲区描述
+	D3D11_BUFFER_DESC indexBufferDesc;
+	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
+	indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBufferDesc.ByteWidth = sizeof(indices);
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+
+	// 新建索引缓冲区
+	D3D11_SUBRESOURCE_DATA indexData;
+	indexData.pSysMem = indices;
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+	ID3D11Buffer *pIndexBufferObject = nullptr;
+	(m_pDevice->CreateBuffer(&indexBufferDesc, &indexData, &pIndexBufferObject));
+
+
+
+	// 输入装配阶段的顶点缓冲区设置
+	UINT stride = sizeof(VertexPosTex);	// 跨越字节数
+	UINT offset = 0;						// 起始偏移量
+
+	m_pContext->IASetVertexBuffers(0, 1, &pVertexBufferObject, &stride, &offset);
+
+	//2.4 为索引缓冲区设置 CPU 描述符handle，分配到管道
+	m_pContext->IASetIndexBuffer(pIndexBufferObject, DXGI_FORMAT_R16_UINT, 0);
+
+	//绑定管道
+	//m_pContext->VSSetConstantBuffers(0, 1, &m_pIBO);
+	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	ID3DBlob* pVertexShaderBlob = nullptr;
+	ID3DBlob* pPixelShaderBlob = nullptr;
+	ID3D10Blob* pErrorMessage = nullptr;
+
+	//pVertexShader = nullptr;
+	//m_pVertexLayout = nullptr;
+	//pPixelShader = nullptr;
+
+	// 编译顶点着色器
+	(D3DReadFileToBlob(L"../bin/tex_vs.cso", &pVertexShaderBlob));
+	(m_pDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), nullptr, &m_pVertexShader));
+
+
+	// 编译像素着色器
+	(D3DReadFileToBlob(L"../bin/tex_ps.cso", &pPixelShaderBlob));
+	(m_pDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &m_pPixelShader));
+
+	//创建顶点着色器和像素着色器
+	auto hr = m_pDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(),
+		pVertexShaderBlob->GetBufferSize(), nullptr, &m_pVertexShader);
+	if (FAILED(hr)) {
+		MessageBox(NULL, L"ERROR::CreateVertexShader", L"Error", MB_OK);
+		return;
+	}
+	hr = m_pDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(),
+		pPixelShaderBlob->GetBufferSize(), nullptr, &m_pPixelShader);
+	if (FAILED(hr)) {
+		MessageBox(NULL, L"ERROR::CreateVertexShader", L"Error", MB_OK);
+		return;
+	}
+
+
+	//在顶点着色器中,使用了 POSITION,
+	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 } ,
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+	const UINT numElements = ARRAYSIZE(layout);
+	hr = m_pDevice->CreateInputLayout(layout, numElements, pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), &m_pInputLayout);
+	if (FAILED(hr)) {
+		MessageBox(NULL, L"ERROR::CreateInputLayout", L"Error", MB_OK);
+		return;
+	}
+	m_pContext->IASetInputLayout(m_pInputLayout);	// 设置
+
+	return;
+}
+
+
 int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 {
 	//D3d设备初始化
@@ -795,7 +924,6 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 	HR(hr = m_pDevice->CreateRenderTargetView(pId3D11Texture2D, nullptr, &m_pRenderTargetView));
 
 	pId3D11Texture2D->Release();
-
 
 	//3.2.指定输出目标（渲染对象）
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, nullptr);
