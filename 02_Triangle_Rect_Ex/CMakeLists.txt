@@ -1,8 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.8.0)
 
 
-PROJECT(RenderToTex)
-SET(TARGET "RenderToTex")
+PROJECT(Triangle_Rect_Ex)
+SET(TARGET "Triangle_Rect_Ex")
 
 add_compile_definitions(UNICODE _UNICODE)
 
@@ -37,6 +37,9 @@ SOURCE_GROUP("include" FILES ${HEAD_LIST})
 FILE(GLOB  SHADER_LIST "./shader/*.hlsl")
 SOURCE_GROUP("shader" FILES ${SHADER_LIST})
 
+FILE(GLOB  MISC_LIST "./misc/*.*")
+SOURCE_GROUP("misc" FILES ${MISC_LIST})
+
 # 设置着色器类型
 foreach(v ${SHADER_LIST})
     STRING( REGEX MATCH  ".*ps.hlsl" prjNamePS ${v} )
@@ -56,6 +59,7 @@ SET(ALL_SOURCES
 ${SRC_LIST}
 ${HEAD_LIST}
 ${SHADER_LIST}
+${MISC_LIST}
 )
 
 

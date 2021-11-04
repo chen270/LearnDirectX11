@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <d3dcompiler.h>
 #include <direct.h>
-#define CHECK_D3D_ERROR(hr) if(FAILED(hr)){printf("D3d error = %d, at %s:%i\n", hr, __FILE__, __LINE__); exit(-1);}
+#include "misc/DXTrace.h"
+
 
 D3dClass::D3dClass():m_vsync_enabled(false)
 {
@@ -52,8 +53,7 @@ int D3dClass::DrawTriangle()
 
 	//3.创建顶点缓冲区
 	ID3D11Buffer *pVBO = nullptr;
-	hr = pDevice->CreateBuffer(&vertexBufferDesc, &vsData, &pVBO);
-	CHECK_D3D_ERROR(hr);
+	HR( pDevice->CreateBuffer(&vertexBufferDesc, &vsData, &pVBO) );
 
 	//4.为顶点缓冲区设置 CPU 描述符handle，分配到管道
 	UINT stride = sizeof(Vertex);
@@ -63,11 +63,11 @@ int D3dClass::DrawTriangle()
 	//5.创建 vertex shader
 	ID3D11VertexShader* pVertexShader;
 	ID3DBlob* pBlob;//存储shader中的内容
-	hr = D3DReadFileToBlob(L"../bin/vs.cso", &pBlob);
-	CHECK_D3D_ERROR(hr);
+	HR( D3DReadFileToBlob(L"../bin/vs.cso", &pBlob) );
+
 	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(), 
 		pBlob->GetBufferSize(), nullptr, &pVertexShader);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//6.绑定 vertex shader 到渲染管线
 	pContext->VSSetShader(pVertexShader, nullptr, 0);
@@ -82,7 +82,7 @@ int D3dClass::DrawTriangle()
 	const UINT numElements = ARRAYSIZE(layout);
 	hr = pDevice->CreateInputLayout(layout, numElements, 
 		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//8.绑定 layout
 	pContext->IASetInputLayout(pInputLayout);
@@ -95,10 +95,10 @@ int D3dClass::DrawTriangle()
 	ID3D11PixelShader* pPixelShader;
 	ID3DBlob* pBlob_PS;//存储shader中的内容
 	hr = D3DReadFileToBlob(L"../bin/ps.cso", &pBlob_PS);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 	hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
 		pBlob_PS->GetBufferSize(), nullptr, &pPixelShader);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//10.绑定 pixel shader 到渲染管线
 	pContext->PSSetShader(pPixelShader, nullptr, 0);
@@ -161,7 +161,7 @@ int D3dClass::DrawRect()
 	//1.3 创建顶点缓冲区
 	ID3D11Buffer *pVBO = nullptr;
 	hr = pDevice->CreateBuffer(&vertexBufferDesc, &vsData, &pVBO);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//1.4 为顶点缓冲区设置 CPU 描述符handle，分配到管道
 	UINT stride = sizeof(Vertex);
@@ -188,7 +188,7 @@ int D3dClass::DrawRect()
 	//2.3 创建索引缓冲区
 	ID3D11Buffer *pIBO = nullptr;
 	hr = pDevice->CreateBuffer(&indexBufferDesc, &indexData, &pIBO);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//2.4 为索引缓冲区设置 CPU 描述符handle，分配到管道
 	pContext->IASetIndexBuffer(pIBO, DXGI_FORMAT_R16_UINT, 0);
@@ -198,10 +198,10 @@ int D3dClass::DrawRect()
 	ID3D11VertexShader* pVertexShader;
 	ID3DBlob* pBlob;//存储shader中的内容
 	hr = D3DReadFileToBlob(L"../bin/vs.cso", &pBlob);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(),
 		pBlob->GetBufferSize(), nullptr, &pVertexShader);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//4.绑定 vertex shader 到渲染管线
 	pContext->VSSetShader(pVertexShader, nullptr, 0);
@@ -217,7 +217,7 @@ int D3dClass::DrawRect()
 	const UINT numElements = ARRAYSIZE(layout);
 	hr = pDevice->CreateInputLayout(layout, numElements,
 		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//6.绑定 layout
 	pContext->IASetInputLayout(pInputLayout);
@@ -229,11 +229,11 @@ int D3dClass::DrawRect()
 	//7.创建 pixel shader
 	ID3D11PixelShader* pPixelShader;
 	ID3DBlob* pBlob_PS;//存储shader中的内容
-	hr = D3DReadFileToBlob(L"../bin/ps.cso", &pBlob_PS);
-	CHECK_D3D_ERROR(hr);
+	HR( D3DReadFileToBlob(L"../bin/ps.cso", &pBlob_PS));
+
 	hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
 		pBlob_PS->GetBufferSize(), nullptr, &pPixelShader);
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 	//8.绑定 pixel shader 到渲染管线
 	pContext->PSSetShader(pPixelShader, nullptr, 0);
@@ -263,11 +263,8 @@ int D3dClass::DrawRect()
 int D3dClass::EndFrame()
 {
 	//翻转后缓存的画面
-	HRESULT hr = S_FALSE;
-
 	//Present(同步间隔，标签),屏幕刷新60hz的话，那么若游戏画面想要30hz，则间隔填入2，若能达到60，填入1
-	hr = pSwap->Present(1, 0);
-	CHECK_D3D_ERROR(hr);
+	HR( pSwap->Present(1, 0));
 
 	return 0;
 }
@@ -362,20 +359,18 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 			break;
 		}
 	}
-	CHECK_D3D_ERROR(hr);
+	HR(hr);
 
 
 	//3.渲染目标视图（Render Target View）,先读取纹理，然后用纹理创建渲染目标视图
 	//3.1 获取交换链的后缓存
 	ID3D11Resource* pId3D11Texture2D = nullptr;
 	hr = pSwap->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<LPVOID*>(&pId3D11Texture2D));//COM queryInterface
-	CHECK_D3D_ERROR(hr);
-
+	HR(hr);
 
 	// CreateRenderTargetView 方法的第二个参数为 D3D11_RENDERTARGETVIEW_DESC 结构，此处使用默认，即nullptr
 	hr = pDevice->CreateRenderTargetView(pId3D11Texture2D, nullptr, &pRenderTargetView);
-	CHECK_D3D_ERROR(hr);
-
+	HR(hr);
 
 	pId3D11Texture2D->Release();
 
