@@ -40,6 +40,9 @@ SOURCE_GROUP("shader" FILES ${SHADER_LIST})
 FILE(GLOB  MISC_LIST "./misc/*.*")
 SOURCE_GROUP("misc" FILES ${MISC_LIST})
 
+# FILE(GLOB  EXCEP_LIST "./misc/exception/*.*")
+# SOURCE_GROUP("misc" FILES ${EXCEP_LIST})
+
 # 设置着色器类型
 foreach(v ${SHADER_LIST})
     STRING( REGEX MATCH  ".*ps.hlsl" prjNamePS ${v} )
@@ -60,6 +63,7 @@ ${SRC_LIST}
 ${HEAD_LIST}
 ${SHADER_LIST}
 ${MISC_LIST}
+# ${EXCEP_LIST}
 )
 
 

@@ -341,6 +341,11 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 
 	HRESULT hr = S_FALSE;
 	UINT createDeviceFlags = 0;
+
+#if defined(DEBUG) || defined(_DEBUG)  
+	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
 	for (auto driverType : driverTypes) {
 		hr = D3D11CreateDeviceAndSwapChain(
 			nullptr,//传递NULL以使用默认适配器,若有多个显卡，可以指定一个
@@ -365,7 +370,7 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 	//3.渲染目标视图（Render Target View）,先读取纹理，然后用纹理创建渲染目标视图
 	//3.1 获取交换链的后缓存
 	ID3D11Resource* pId3D11Texture2D = nullptr;
-	hr = pSwap->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<LPVOID*>(&pId3D11Texture2D));//COM queryInterface
+		hr = pSwap->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<LPVOID*>(&pId3D11Texture2D));//COM queryInterface
 	HR(hr);
 
 	// CreateRenderTargetView 方法的第二个参数为 D3D11_RENDERTARGETVIEW_DESC 结构，此处使用默认，即nullptr
