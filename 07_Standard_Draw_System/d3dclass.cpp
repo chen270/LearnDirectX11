@@ -20,6 +20,8 @@ D3dClass::~D3dClass()
 
 int D3dClass::DrawTriangle()
 {
+	//DrawTestTriangleErr();
+
 	HRESULT hr = S_FALSE;
 	Vertex vertices[] =			// 顶点数组
 	{
@@ -54,8 +56,8 @@ int D3dClass::DrawTriangle()
 
 	//5.创建 vertex shader
 	ComPtr<ID3D11VertexShader> pVertexShader;
-	ID3DBlob* pBlob;//存储shader中的内容
-	HR( D3DReadFileToBlob(L"../bin/vs.cso", &pBlob) );
+	ComPtr<ID3DBlob> pBlob;//存储shader中的内容
+	HR( D3DReadFileToBlob(L"../bin/vs.cso", pBlob.GetAddressOf()) );
 
 	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(), 
 		pBlob->GetBufferSize(), nullptr, pVertexShader.GetAddressOf());
@@ -69,7 +71,7 @@ int D3dClass::DrawTriangle()
 	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
 	const D3D11_INPUT_ELEMENT_DESC layout[]{
 		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float)*3, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float)*3, D3D11_INPUT_PER_VERTEX_DATA, 0},//UNORM归一化
 	};
 	const UINT numElements = ARRAYSIZE(layout);
 	hr = pDevice->CreateInputLayout(layout, numElements, 
@@ -114,7 +116,7 @@ int D3dClass::DrawTriangle()
 	vp.MaxDepth = 1.0f;
 	pContext->RSSetViewports(1, &vp);
 
-	pContext->Draw(vertexesNum, 0);//三个顶点，从0号顶点开始
+	THROW_D3D_EXCEPTION(pContext->Draw(vertexesNum, 0));//三个顶点，从0号顶点开始
 	return 0;
 }
 
@@ -248,7 +250,7 @@ int D3dClass::DrawRect()
 	vp.MaxDepth = 1.0f;
 	pContext->RSSetViewports(1, &vp);
 
-	pContext->DrawIndexed(indexCount, 0, 0);
+	THROW_D3D_EXCEPTION(pContext->DrawIndexed(indexCount, 0, 0));
 	return 0;
 }
 
@@ -372,4 +374,56 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 	pId3D11Texture2D.Reset();
 
 	return 0;
+}
+
+
+//Error code for test
+void D3dClass::DrawTestTriangleErr()
+{
+	namespace wrl = Microsoft::WRL;
+	HRESULT hr;
+
+	struct Vertex
+	{
+		float x;
+		float y;
+	};
+
+	// create vertex buffer (1 2d triangle at center of screen)
+	const Vertex vertices[] =
+	{
+		{ 0.0f,0.5f },
+		{ 0.5f,-0.5f },
+		{ -0.5f,-0.5f },
+	};
+	wrl::ComPtr<ID3D11Buffer> pVertexBuffer;
+	D3D11_BUFFER_DESC bd = {};
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.CPUAccessFlags = 0u;
+	bd.MiscFlags = 0u;
+	bd.ByteWidth = sizeof(vertices);
+	bd.StructureByteStride = sizeof(Vertex);
+	D3D11_SUBRESOURCE_DATA sd = {};
+	sd.pSysMem = vertices;
+	HR(pDevice->CreateBuffer(&bd, &sd, &pVertexBuffer));
+
+	// Bind vertex buffer to pipeline
+	const UINT stride = sizeof(Vertex);
+	const UINT offset = 0u;
+	pContext->IASetVertexBuffers(0u, 1u, &pVertexBuffer, &stride, &offset);
+
+
+	// create vertex shader
+	//wrl::ComPtr<ID3D11VertexShader> pVertexShader;
+	//wrl::ComPtr<ID3DBlob> pBlob;
+	//HR(D3DReadFileToBlob(L"VertexShader.cso", &pBlob));
+	//HR(pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader));
+
+	//// bind vertex shader
+	//pContext->VSSetShader(pVertexShader.Get(), nullptr, 0u);
+
+
+	THROW_D3D_EXCEPTION(pContext->Draw((UINT)std::size(vertices), 0u));
+	//pContext->Draw( (UINT)std::size( vertices ),0u );
 }

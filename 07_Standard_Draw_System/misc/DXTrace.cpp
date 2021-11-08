@@ -1,7 +1,11 @@
 ﻿#include "DXTrace.h"
 #include <stdio.h>
 
-HRESULT WINAPI DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine, _In_ HRESULT hr,
+
+DxgiInfoManager DXTrace::infoManager;
+
+
+HRESULT WINAPI DXTrace::DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine, _In_ HRESULT hr,
 	_In_opt_ const WCHAR* strMsg, _In_ bool bPopMsgBox)
 {
 	WCHAR strBufferFile[MAX_PATH];
@@ -62,4 +66,35 @@ HRESULT WINAPI DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine, _In_ HRE
 	}
 
 	return hr;
+}
+
+
+void DXTrace::DXTraceExcep(int line, const char* file, std::vector<std::string> infoMsgs) noexcept
+{
+	std::string info;
+
+	char strBufferFile[MAX_PATH] = "";
+	char strBufferLine[128];
+	if (file)
+		sprintf_s(strBufferFile, "file name: %s\n", file);
+	sprintf_s(strBufferLine, "line: %d\n", line);
+	info += std::string(strBufferFile);
+	info += std::string(strBufferLine);
+	info += "Error Description:\n";
+	//info += '\n';
+	// join all info messages with newlines into single string
+	for (const auto& m : infoMsgs)
+	{
+		info += m;
+		info.push_back('\n');
+	}
+	// remove final newline if exists
+	if (!info.empty())
+	{
+		info.pop_back();
+	}
+
+	int nResult = MessageBoxA(GetForegroundWindow(), info.c_str(), "错误", MB_YESNO | MB_ICONERROR);
+	if (nResult == IDYES)
+		DebugBreak();
 }

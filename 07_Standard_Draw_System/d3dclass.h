@@ -43,6 +43,9 @@ private:
 		DirectX::XMFLOAT3 pos;
 		unsigned char color[4]; // RGBA 比float节省空间
 	};
+
+private:
+	void DrawTestTriangleErr();
 };
 
 #endif //__D3DCLASS_H__
