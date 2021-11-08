@@ -114,7 +114,7 @@ int D3dClass::DrawTriangle(float angle)
 
 	D3D11_SUBRESOURCE_DATA csd;
 	csd.pSysMem = &cb;
-	THROW_D3D_EXCEPTION( pDevice->CreateBuffer(&cbd, &csd, pConstantBuffer.GetAddressOf()) );
+	HR( pDevice->CreateBuffer(&cbd, &csd, pConstantBuffer.GetAddressOf()) );
 
 	//绑定
 	pContext->VSSetConstantBuffers(0, 1, pConstantBuffer.GetAddressOf());

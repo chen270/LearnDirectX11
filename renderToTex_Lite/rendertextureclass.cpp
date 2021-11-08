@@ -21,6 +21,34 @@ RenderTextureClass::~RenderTextureClass()
 {
 }
 
+void test(ID3D11Device* Device)
+{
+	ID3D11Texture2D* Texture = nullptr;
+	ID3D11Texture2D* Staging = nullptr;
+
+	D3D11_TEXTURE2D_DESC TexDesc;
+	TexDesc.Width = 16;
+	TexDesc.Height = 16;
+	TexDesc.MipLevels = 1;
+	TexDesc.ArraySize = 1;
+	TexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	TexDesc.SampleDesc.Count = 1;
+	TexDesc.SampleDesc.Quality = 0;
+	TexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	TexDesc.MiscFlags = 0;
+	TexDesc.Usage = D3D11_USAGE_DEFAULT;
+	TexDesc.CPUAccessFlags = 0;
+
+	HRESULT result = Device->CreateTexture2D(&TexDesc, NULL, &Texture);
+
+	TexDesc.Usage = D3D11_USAGE_STAGING;
+	TexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	result = Device->CreateTexture2D(&TexDesc, NULL, &Staging);
+
+	return;
+}
 
 bool RenderTextureClass::Initialize(ID3D11Device* device, int textureWidth, int textureHeight)
 {
@@ -42,15 +70,13 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, int textureWidth, int 
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	textureDesc.CPUAccessFlags = 0;
+	textureDesc.CPUAccessFlags = 0; // D3D11_CPU_ACCESS_READ;
     textureDesc.MiscFlags = 0;
 
 	// Create the render target texture.
 	result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture);
 	if(FAILED(result))
-	{
 		return false;
-	}
 
 	// Setup the description of the render target view.
 	renderTargetViewDesc.Format = textureDesc.Format;
@@ -60,9 +86,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, int textureWidth, int 
 	// Create the render target view.
 	result = device->CreateRenderTargetView(m_renderTargetTexture, &renderTargetViewDesc, &m_renderTargetView);
 	if(FAILED(result))
-	{
 		return false;
-	}
 
 	// Setup the description of the shader resource view.
 	shaderResourceViewDesc.Format = textureDesc.Format;
@@ -73,12 +97,56 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, int textureWidth, int 
 	// Create the shader resource view.
 	result = device->CreateShaderResourceView(m_renderTargetTexture, &shaderResourceViewDesc, &m_shaderResourceView);
 	if(FAILED(result))
-	{
+		return false;
+
+
+	//for test
+	ID3D11Texture2D* m_renderTargetTexture_stage;
+
+#if 0 //使用原来的 desc
+	textureDesc.BindFlags = 0;//必须为0
+	textureDesc.Usage = D3D11_USAGE_STAGING;
+	textureDesc.CPUAccessFlags =  D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+		
+	// Create the render target texture.
+	result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture_stage);
+
+#else //读取原来的描述 
+
+	// 读取创建好的纹理信息
+	D3D11_TEXTURE2D_DESC textureDescOrigin;
+	m_renderTargetTexture->GetDesc(&textureDescOrigin);
+	textureDescOrigin.BindFlags = 0;//必须为0
+	textureDescOrigin.Usage = D3D11_USAGE_STAGING;
+	textureDescOrigin.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+
+	// Create the render target texture.
+	result = device->CreateTexture2D(&textureDescOrigin, NULL, &m_renderTargetTexture_stage);
+#endif
+	if (FAILED(result))
+		return false;
+
+	ID3D11DeviceContext* ctx = NULL;
+	device->GetImmediateContext(&ctx);
+	ctx->CopyResource(m_renderTargetTexture_stage, m_renderTargetTexture);
+
+
+	D3D11_MAPPED_SUBRESOURCE lock;
+	HRESULT hr = ctx->Map((ID3D11Resource*)m_renderTargetTexture_stage, 0, D3D11_MAP_READ, 0, &lock);
+
+	if (FAILED(hr)) {
+		perror("Failed to map staging texture\n");
 		return false;
 	}
 
+	ctx->Unmap((ID3D11Resource*)m_renderTargetTexture_stage, 0);
+	ctx->Release();
+
+
 	return true;
 }
+
+
 
 
 void RenderTextureClass::Shutdown()

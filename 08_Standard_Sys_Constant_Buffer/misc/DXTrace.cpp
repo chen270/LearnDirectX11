@@ -8,6 +8,24 @@ DxgiInfoManager DXTrace::infoManager;
 HRESULT WINAPI DXTrace::DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine, _In_ HRESULT hr,
 	_In_opt_ const WCHAR* strMsg, _In_ bool bPopMsgBox)
 {
+	//modified by chenjie.fan
+	auto v = DXTrace::infoManager.GetMessages();
+	std::wstring info;
+	if (!v.empty()) {
+		for (const auto& m : v)
+		{
+			info += std::wstring(m.begin(), m.end());
+			info.push_back(L'\n');
+		}
+		// remove final newline if exists
+		if (!info.empty())
+		{
+			info.pop_back();
+		}
+	}
+	//modified end
+
+
 	WCHAR strBufferFile[MAX_PATH];
 	WCHAR strBufferLine[128];
 	WCHAR strBufferError[300];
@@ -57,8 +75,9 @@ HRESULT WINAPI DXTrace::DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine,
 		if (nMsgLen > 0)
 			swprintf_s(strBufferMsg, 1024, L"当前调用：%ls\n", strMsg);
 
-		swprintf_s(strBuffer, 3000, L"文件名：%ls\n行号：%ls\n错误码含义：%ls\n%ls您需要调试当前应用程序吗？",
-			strBufferFile, strBufferLine, strBufferError, strBufferMsg);
+
+		swprintf_s(strBuffer, 3000, L"文件名：%ls\n行号：%ls\n错误码含义：%ls\n%ls\n错误描述: %ls\n\n您需要调试当前应用程序吗？",
+			strBufferFile, strBufferLine, strBufferError, strBufferMsg, info.c_str());
 
 		int nResult = MessageBoxW(GetForegroundWindow(), strBuffer, L"错误", MB_YESNO | MB_ICONERROR);
 		if (nResult == IDYES)
@@ -69,24 +88,24 @@ HRESULT WINAPI DXTrace::DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine,
 }
 
 
-void DXTrace::DXTraceExcep(int line, const char* file, std::vector<std::string> infoMsgs) noexcept
+void DXTrace::DXTraceExcep(_In_z_ const WCHAR* file, _In_ DWORD dwLine, std::vector<std::string> infoMsgs) noexcept
 {
-	std::string info;
+	std::wstring info;
 
-	char strBufferFile[MAX_PATH] = "";
-	char strBufferLine[128];
+	WCHAR strBufferFile[MAX_PATH];
+	WCHAR strBufferLine[128];
 	if (file)
-		sprintf_s(strBufferFile, "file name: %s\n", file);
-	sprintf_s(strBufferLine, "line: %d\n", line);
-	info += std::string(strBufferFile);
-	info += std::string(strBufferLine);
-	info += "Error Description:\n";
+		swprintf_s(strBufferFile, L"文件名: %s\n", file);
+	swprintf_s(strBufferLine, L"行号: %d\n", dwLine);
+	info += std::wstring(strBufferFile);
+	info += std::wstring(strBufferLine);
+	info += L"错误描述:\n";
 	//info += '\n';
 	// join all info messages with newlines into single string
 	for (const auto& m : infoMsgs)
 	{
-		info += m;
-		info.push_back('\n');
+		info += std::wstring(m.begin(), m.end());
+		info.push_back(L'\n');
 	}
 	// remove final newline if exists
 	if (!info.empty())
@@ -94,7 +113,11 @@ void DXTrace::DXTraceExcep(int line, const char* file, std::vector<std::string> 
 		info.pop_back();
 	}
 
-	int nResult = MessageBoxA(GetForegroundWindow(), info.c_str(), "错误", MB_YESNO | MB_ICONERROR);
+	//std::wstring wide_string = std::wstring(info.begin(), info.end());
+	const wchar_t* result = info.c_str();
+
+	//int nResult = MessageBoxA(GetForegroundWindow(), info.c_str(), "错误", MB_YESNO | MB_ICONERROR);
+	int nResult = MessageBoxW(GetForegroundWindow(), result, L"错误", MB_YESNO | MB_ICONERROR);
 	if (nResult == IDYES)
 		DebugBreak();
 }

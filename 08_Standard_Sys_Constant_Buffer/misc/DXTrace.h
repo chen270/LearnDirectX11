@@ -21,7 +21,7 @@ public:
 	
 public:
 
-	static void DXTraceExcep(int line, const char* file, std::vector<std::string> infoMsgs)noexcept;
+	static void DXTraceExcep(_In_z_ const WCHAR* file, _In_ DWORD dwLine, std::vector<std::string> infoMsgs)noexcept;
 
 #if defined(DEBUG) || defined(_DEBUG)  
 	static DxgiInfoManager infoManager;
@@ -44,6 +44,7 @@ private:
 #ifndef HR
 #define HR(x)												\
 	{															\
+		DXTrace::infoManager.Set();							\
 		HRESULT hr_tmp = (x);										\
 		if(FAILED(hr_tmp))											\
 		{														\
@@ -67,7 +68,7 @@ private:
 #define THROW_D3D_EXCEPTION(call)												\
  DXTrace::infoManager.Set();  \
  (call);             \
- {auto v = DXTrace::infoManager.GetMessages(); if(!v.empty()) { DXTrace::DXTraceExcep( __LINE__,__FILE__,v);}}
+ {auto v = DXTrace::infoManager.GetMessages(); if(!v.empty()) { DXTrace::DXTraceExcep(__FILEW__, (DWORD)__LINE__,v);}}
 #endif
 #else
 #ifndef THROW_D3D_EXCEPTION
