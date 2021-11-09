@@ -5,6 +5,8 @@
 #include "misc/DXTrace.h"
 #include <math.h>
 
+
+
 D3dClass::D3dClass():m_vsync_enabled(false)
 {
 	char path[1024];
@@ -87,26 +89,27 @@ int D3dClass::DrawTriangle(float angle)
 	//create constant buffer start--------------------
 	struct ConstantBuffer
 	{
-		struct
-		{
-			float element[4][4];
-		}transformation;
+		DirectX::XMMATRIX transform;//无法直接访问元素来初始化和改变元素，类似于黑匣子
 	};
 
+
+	float ratio_hw = (float)m_screenHeight / (float)m_screenWidth;
+	
 	const ConstantBuffer cb =
 	{
 		{
-			cos(angle),  sin(angle), 0.0f, 0.0f,
-			-sin(angle), cos(angle), 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f,
+#if 0
+			DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationZ(angle), DirectX::XMMatrixScaling(ratio_hw,1.0f,1.0f))
+#else
+			DirectX::XMMatrixRotationZ(angle)* DirectX::XMMatrixScaling(ratio_hw,1.0f,1.0f) //该库也重载了 *
+#endif
 		}
 	};
 	ComPtr<ID3D11Buffer> pConstantBuffer;
 	D3D11_BUFFER_DESC cbd;
 	ZeroMemory(&cbd, sizeof(cbd));
 	cbd.Usage = D3D11_USAGE_DYNAMIC; //每帧都要更新，需要动态缓冲
-	cbd.CPUAccessFlags = 0;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	cbd.ByteWidth = sizeof(cb);	// 大小
 	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;	// Bind
 	cbd.MiscFlags = 0;
