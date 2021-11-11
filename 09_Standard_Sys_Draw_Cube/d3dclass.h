@@ -21,7 +21,7 @@ public:
 	int DrawTriangle(float angle);
 	int DrawRect();
 	int DrawCube(float angle, float x, float z);
-
+	void DrawTestCube(float angle, float x, float z);
 
 private:
 	bool m_vsync_enabled;

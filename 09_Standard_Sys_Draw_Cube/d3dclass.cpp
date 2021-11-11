@@ -20,6 +20,154 @@ D3dClass::~D3dClass()
 
 }
 
+void D3dClass::DrawTestCube(float angle, float x, float z)
+{
+	HRESULT hr;
+
+	// create vertex buffer (1 2d triangle at center of screen)
+	Vertex vertices[] =			// 顶点数组
+	{
+		{DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f),{255, 0, 0,  1} },
+		{DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),{0, 255, 0,  1} },
+		{DirectX::XMFLOAT3(-1.0f,  1.0f, -1.0f),{0, 0, 255,  1} },
+		{DirectX::XMFLOAT3(1.0f,  1.0f, -1.0f),{255, 255, 0,  1} },
+		{DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f),{255, 0, 255,  1} },
+		{DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),{0, 255, 255,  1} },
+		{DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f),{0, 0, 0,  1} },
+		{DirectX::XMFLOAT3(1.0f,  1.0f,  1.0f),{255, 255, 255,  1} },
+	};
+	ComPtr<ID3D11Buffer> pVertexBuffer;
+	D3D11_BUFFER_DESC bd = {};
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.CPUAccessFlags = 0u;
+	bd.MiscFlags = 0u;
+	bd.ByteWidth = sizeof(vertices);
+	bd.StructureByteStride = sizeof(Vertex);
+	D3D11_SUBRESOURCE_DATA sd = {};
+	sd.pSysMem = vertices;
+	HR(pDevice->CreateBuffer(&bd, &sd, &pVertexBuffer));
+
+	// Bind vertex buffer to pipeline
+	const UINT stride = sizeof(Vertex);
+	const UINT offset = 0u;
+	pContext->IASetVertexBuffers(0u, 1u, pVertexBuffer.GetAddressOf(), &stride, &offset);
+
+
+	// create index buffer
+	const unsigned short indices[] =
+	{
+		0,2,1, 2,3,1,
+		1,3,5, 3,7,5,
+		2,6,3, 3,6,7,
+		4,5,7, 4,7,6,
+		0,4,2, 2,4,6,
+		0,1,4, 1,5,4
+	};
+	ComPtr<ID3D11Buffer> pIndexBuffer;
+	D3D11_BUFFER_DESC ibd = {};
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.Usage = D3D11_USAGE_DEFAULT;
+	ibd.CPUAccessFlags = 0u;
+	ibd.MiscFlags = 0u;
+	ibd.ByteWidth = sizeof(indices);
+	ibd.StructureByteStride = sizeof(unsigned short);
+	D3D11_SUBRESOURCE_DATA isd = {};
+	isd.pSysMem = indices;
+	HR(pDevice->CreateBuffer(&ibd, &isd, &pIndexBuffer));
+
+	// bind index buffer
+	pContext->IASetIndexBuffer(pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0u);
+
+
+	// create constant buffer for transformation matrix
+	struct ConstantBuffer
+	{
+		DirectX::XMMATRIX transform;
+	};
+	const ConstantBuffer cb =
+	{
+		{
+			DirectX::XMMatrixTranspose(
+				DirectX::XMMatrixRotationZ(angle) *
+				DirectX::XMMatrixRotationX(angle) *
+				DirectX::XMMatrixTranslation(x,0.0f,z + 4.0f) *
+				DirectX::XMMatrixPerspectiveLH(1.0f,3.0f / 4.0f,0.5f,10.0f)
+			)
+		}
+	};
+	ComPtr<ID3D11Buffer> pConstantBuffer;
+	D3D11_BUFFER_DESC cbd;
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0u;
+	cbd.ByteWidth = sizeof(cb);
+	cbd.StructureByteStride = 0u;
+	D3D11_SUBRESOURCE_DATA csd = {};
+	csd.pSysMem = &cb;
+	HR(pDevice->CreateBuffer(&cbd, &csd, &pConstantBuffer));
+
+	// bind constant buffer to vertex shader
+	pContext->VSSetConstantBuffers(0u, 1u, pConstantBuffer.GetAddressOf());
+
+	// create pixel shader
+	ComPtr<ID3D11PixelShader> pPixelShader;
+	ComPtr<ID3DBlob> pBlob;
+	HR(D3DReadFileToBlob(L"../bin/ps.cso", &pBlob));
+	HR(pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pPixelShader));
+
+	// bind pixel shader
+	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0u);
+
+
+	// create vertex shader
+	ComPtr<ID3D11VertexShader> pVertexShader;
+	HR(D3DReadFileToBlob(L"../bin/vs.cso", &pBlob));
+	HR(pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader));
+
+	// bind vertex shader
+	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0u);
+
+
+	// input (vertex) layout (2d position only)
+	ComPtr<ID3D11InputLayout> pInputLayout;
+	const D3D11_INPUT_ELEMENT_DESC ied[] =
+	{
+		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},//UNORM归一化
+	};
+	HR(pDevice->CreateInputLayout(
+		ied, (UINT)std::size(ied),
+		pBlob->GetBufferPointer(),
+		pBlob->GetBufferSize(),
+		&pInputLayout
+	));
+
+	// bind vertex layout
+	pContext->IASetInputLayout(pInputLayout.Get());
+
+
+	// Set primitive topology to triangle list (groups of 3 vertices)
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	// configure viewport
+	D3D11_VIEWPORT vp;
+	vp.Width = 800;
+	vp.Height = 600;
+	vp.MinDepth = 0;
+	vp.MaxDepth = 1;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	pContext->RSSetViewports(1u, &vp);
+
+
+	THROW_D3D_EXCEPTION(pContext->DrawIndexed((UINT)std::size(indices), 0u, 0u));
+}
+
+
+
 int D3dClass::DrawCube(float angle, float x, float z)
 {
 	//DrawTestTriangleErr();
@@ -189,7 +337,7 @@ int D3dClass::DrawCube(float angle, float x, float z)
 	//end *************************************************/
 
 	//11.指定输出目标（渲染对象）
-	pContext->OMSetRenderTargets(1, pRenderTargetView.GetAddressOf(), nullptr);
+	pContext->OMSetRenderTargets(1, pRenderTargetView.GetAddressOf(), pDepthStencilView.Get());//在初始化时，已经指定了输出目标，所以不需要指定
 
 	//三角形list
 	pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);//画三角形

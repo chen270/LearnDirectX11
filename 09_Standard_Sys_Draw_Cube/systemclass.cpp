@@ -53,7 +53,7 @@ int SystemClass::Run()
 			d3d->ClearBuffer(0.5f,0.5f, 0.5f);
 			//d3d->DrawTriangle(m_time.Peek());
 			d3d->DrawCube(m_time.Peek(),0,0);
-			d3d->DrawCube(m_time.Peek(),2,2);
+			d3d->DrawCube(-m_time.Peek(),-1.0,0.0);
 			//d3d->DrawRect();
 			d3d->EndFrame();
 		}
