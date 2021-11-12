@@ -1,6 +1,10 @@
 # LearnDirectX11
 Learn DirectX11/D3d11
 
+projects with the prefix of hw3d referred to [ChiliTomatoNoodle](https://www.youtube.com/channel/UCsyHonfwHi4fLb2lkq0DEAA)
+
+
+
 ## ref:
 http://www.rastertek.com/tutdx11.html
 
