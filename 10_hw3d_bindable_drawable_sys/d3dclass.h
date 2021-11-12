@@ -23,7 +23,7 @@ public:
 	int DrawCube(float angle, float x, float z);
 	void DrawTestCube(float angle, float x, float z);
 
-private:
+public:
 	bool m_vsync_enabled;
 	int m_screenWidth;
 	int m_screenHeight;
