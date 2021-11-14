@@ -27,7 +27,10 @@ int SystemClass::Init()
 	CHECK_RES(res, "InitD3d11 error");
 
 	//3.Init Graphics
-#if 1
+	//设置视图矩阵
+	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, (float)m_height/(float)m_width, 0.5f, 40.0f));
+
+#if 0
 	std::mt19937 rng(std::random_device{}());
 	std::uniform_real_distribution<float> adist(0.0f, 3.1415f * 2.0f);
 	std::uniform_real_distribution<float> ddist(0.0f, 3.1415f * 2.0f);
@@ -43,10 +46,10 @@ int SystemClass::Init()
 	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, 3.0f / 4.0f, 0.5f, 40.0f));
 
 #else
-	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, 3.0f / 4.0f, 0.5f, 40.0f));
 
 	graphics2D = std::make_unique <Graphics2D>(m_width, m_height);
 	graphics2D->InitTriangle(*pD3d);
+	//graphics2D->InitCube(*pD3d);
 #endif
 	return 0;
 }
@@ -82,13 +85,15 @@ int SystemClass::Run()
 			pD3d->EndFrame();
 #else
 			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
-			auto dt = m_time.Mark();
-			for (auto& b : boxes)
+			//auto dt = m_time.Mark();
+			/*for (auto& b : boxes)
 			{
 				b->Update(dt);
 				b->Draw(*pD3d);
-			}
-			//graphics2D->Draw(*pD3d);
+			}*/
+			
+			graphics2D->Update(m_time.Peek());
+			graphics2D->Draw(*pD3d);
 			pD3d->EndFrame();
 #endif
 

@@ -13,6 +13,8 @@ public:
 
 	void InitTriangle(D3dClass& d3d);
 
+	void InitCube(D3dClass& d3d);
+
 private:
 	struct VertexWithColor {				// 定义一个顶点结构体，暂时就一个坐标属性
 		DirectX::XMFLOAT3 pos;
@@ -21,6 +23,10 @@ private:
 
 	int m_screenWidth;
 	int m_screenHeight;
+	float angle;
+	float ratio_hw;
+
+	DirectX::XMMATRIX graph2DTransform;
 };
 
 #endif // __GRAPHICS2D_H__

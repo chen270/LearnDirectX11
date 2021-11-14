@@ -14,8 +14,8 @@ cbuffer CBuf
 VSOut main(float3 pos : POSITIONT, float4 color : COLOR)
 {
     VSOut vso;
-    //vso.pos = mul(float4(pos, 1.0f), transform);
-    vso.pos = float4(pos, 1.0f);
+    vso.pos = mul(float4(pos, 1.0f), transform);
+    //vso.pos = float4(pos, 1.0f);
     vso.color = color;
     return vso;
 }
