@@ -11,8 +11,8 @@ public:
 	void Bind( D3dClass& d3d ) noexcept override;
 	ID3DBlob* GetBytecode() const noexcept;
 protected:
-	Microsoft::WRL::ComPtr<ID3DBlob> pBytecodeBlob;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> pVertexShader;
+	ComPtr<ID3DBlob> pBytecodeBlob;
+	ComPtr<ID3D11VertexShader> pVertexShader;
 };
 
 #endif // __VERTEXSHADER_H__

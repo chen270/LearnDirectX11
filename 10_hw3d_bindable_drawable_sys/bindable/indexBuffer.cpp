@@ -14,7 +14,7 @@ IndexBuffer::IndexBuffer( D3dClass& d3d,const std::vector<unsigned short>& indic
 	ibd.StructureByteStride = sizeof( unsigned short );
 	D3D11_SUBRESOURCE_DATA isd = {};
 	isd.pSysMem = indices.data();
-	HR( GetDevice( d3d )->CreateBuffer( &ibd,&isd,&pIndexBuffer ) );
+	HR( GetDevice( d3d )->CreateBuffer( &ibd,&isd,pIndexBuffer.GetAddressOf() ) );
 }
 
 void IndexBuffer::Bind( D3dClass& d3d ) noexcept

@@ -12,7 +12,7 @@ public:
 		ID3DBlob* pVertexShaderBytecode );
 	void Bind( D3dClass& d3d ) noexcept override;
 protected:
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout;
+	ComPtr<ID3D11InputLayout> pInputLayout;
 };
 
 
