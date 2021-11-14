@@ -6,6 +6,13 @@
 #include <DirectXMath.h>
 #include <wrl/client.h>
 
+#if defined(DEBUG) || defined(_DEBUG)  
+#define IS_DEBUG TRUE 
+#else
+#define IS_DEBUG FLASE 
+#endif
+
+
 class D3dClass
 {
 public:
@@ -23,6 +30,11 @@ public:
 	int DrawCube(float angle, float x, float z);
 	void DrawTestCube(float angle, float x, float z);
 
+	void DrawIndexed(UINT count) noexcept(!IS_DEBUG);
+	void SetProjection(DirectX::FXMMATRIX proj) noexcept;
+	DirectX::XMMATRIX GetProjection() const noexcept;
+private:
+	DirectX::XMMATRIX projection;
 public:
 	bool m_vsync_enabled;
 	int m_screenWidth;

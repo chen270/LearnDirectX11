@@ -1,8 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.8.0)
 
 
-PROJECT(Draw_Cube)
-SET(TARGET "Draw_Cube")
+PROJECT(Bindable_Drawable_Sys)
+SET(TARGET "Bindable_Drawable_Sys")
 
 add_compile_definitions(UNICODE _UNICODE)
 
@@ -25,6 +25,9 @@ LINK_DIRECTORIES("${PROJECT_SOURCE_DIR}/bin") #指定链接路径
 INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}")
 # INCLUDE_DIRECTORIES("C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um")
 
+INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/drawable")
+
+INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/bindable")
 
 FILE(GLOB SRC_LIST "./*.cpp")
 # file(GLOB  SRC_LIST "./protoc/*.cc")
@@ -39,6 +42,20 @@ SOURCE_GROUP("shader" FILES ${SHADER_LIST})
 
 FILE(GLOB  MISC_LIST "./misc/*.*")
 SOURCE_GROUP("misc" FILES ${MISC_LIST})
+
+# bindable drawable system
+FILE(GLOB  BINDABLE_CPP_LIST "./bindable/*.cpp")
+SOURCE_GROUP("source/bindable" FILES ${BINDABLE_CPP_LIST})
+
+FILE(GLOB  BINDABLE_HEAD_LIST "./bindable/*.h")
+SOURCE_GROUP("include/bindable" FILES ${BINDABLE_HEAD_LIST})
+
+FILE(GLOB  DRAWABLE_CPP_LIST "./drawable/*.cpp")
+SOURCE_GROUP("source/drawable" FILES ${DRAWABLE_CPP_LIST})
+
+FILE(GLOB  DRAWABLE_HEAD_LIST "./drawable/*.h")
+SOURCE_GROUP("include/drawable" FILES ${DRAWABLE_HEAD_LIST})
+
 
 # FILE(GLOB  EXCEP_LIST "./misc/exception/*.*")
 # SOURCE_GROUP("misc" FILES ${EXCEP_LIST})
@@ -63,6 +80,11 @@ ${SRC_LIST}
 ${HEAD_LIST}
 ${SHADER_LIST}
 ${MISC_LIST}
+
+${BINDABLE_CPP_LIST}
+${BINDABLE_HEAD_LIST}
+${DRAWABLE_CPP_LIST}
+${DRAWABLE_HEAD_LIST}
 # ${EXCEP_LIST}
 )
 

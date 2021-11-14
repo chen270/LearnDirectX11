@@ -9,7 +9,7 @@ InputLayout::InputLayout( D3dClass& d3d,
 		layout.data(),(UINT)layout.size(),
 		pVertexShaderBytecode->GetBufferPointer(),
 		pVertexShaderBytecode->GetBufferSize(),
-		&pInputLayout
+		pInputLayout.GetAddressOf()
 	) );
 }
 

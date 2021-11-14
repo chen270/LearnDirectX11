@@ -11,6 +11,7 @@ SystemClass::SystemClass()
 	m_height = 600;
 
 	d3d = new D3dClass();
+	pD3d = std::make_unique<D3dClass>();
 }
 
 int SystemClass::Init()
@@ -22,9 +23,31 @@ int SystemClass::Init()
 	CHECK_RES(res, "InitWindow error");
 
 	//2.D3d
-	res = d3d->InitD3d11(this->m_hwnd, m_width, m_height);
+	res = pD3d->InitD3d11(this->m_hwnd, m_width, m_height);
 	CHECK_RES(res, "InitD3d11 error");
 
+	//3.Init Graphics
+#if 0
+	std::mt19937 rng(std::random_device{}());
+	std::uniform_real_distribution<float> adist(0.0f, 3.1415f * 2.0f);
+	std::uniform_real_distribution<float> ddist(0.0f, 3.1415f * 2.0f);
+	std::uniform_real_distribution<float> odist(0.0f, 3.1415f * 0.3f);
+	std::uniform_real_distribution<float> rdist(6.0f, 20.0f);
+	for (auto i = 0; i < 80; i++)
+	{
+		boxes.push_back(std::make_unique<Box>(
+			*pD3d, rng, adist,
+			ddist, odist, rdist
+			));
+	}
+	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, 3.0f / 4.0f, 0.5f, 40.0f));
+
+#else
+	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, 3.0f / 4.0f, 0.5f, 40.0f));
+
+	graphics2D = std::make_unique <Graphics2D>(m_width, m_height);
+	graphics2D->InitTriangle(*pD3d);
+#endif
 	return 0;
 }
 
@@ -48,14 +71,27 @@ int SystemClass::Run()
 		else
 		{
 			//DirectX11
+#if 0
 			//当前画出的图形随着窗口的大小而改变
 			//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
-			d3d->ClearBuffer(0.5f,0.5f, 0.5f);
-			//d3d->DrawTriangle(m_time.Peek());
-			d3d->DrawCube(m_time.Peek(),0,0);
-			d3d->DrawCube(-m_time.Peek(),-1.0,0.0);
+			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
+			pD3d->DrawTriangle(m_time.Peek());
+			//pD3d->DrawCube(m_time.Peek(), 0, 0);
+			//pD3d->DrawCube(-m_time.Peek(), -1.0, 0.0);
 			//d3d->DrawRect();
-			d3d->EndFrame();
+			pD3d->EndFrame();
+#else
+			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
+			auto dt = m_time.Mark();
+			//for (auto& b : boxes)
+			//{
+			//	b->Update(dt);
+			//	b->Draw(*pD3d);
+			//}
+			graphics2D->Draw(*pD3d);
+			pD3d->EndFrame();
+#endif
+
 		}
 	}
 

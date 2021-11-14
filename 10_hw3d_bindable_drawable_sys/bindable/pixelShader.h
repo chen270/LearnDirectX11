@@ -10,7 +10,7 @@ public:
 	PixelShader( D3dClass& d3d,const std::wstring& path );
 	void Bind( D3dClass& d3d ) noexcept override;
 protected:
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pPixelShader;
+	ComPtr<ID3D11PixelShader> pPixelShader;
 };
 
 

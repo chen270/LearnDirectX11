@@ -1,16 +1,16 @@
 #include "vertexShader.h"
 #include "misc/DXTrace.h"
-
+#include <d3dcompiler.h>
 
 
 VertexShader::VertexShader( D3dClass& d3d,const std::wstring& path )
 {
-	HR( D3DReadFileToBlob( path.c_str(),&pBytecodeBlob ) );
+	HR( D3DReadFileToBlob( path.c_str(),pBytecodeBlob.GetAddressOf() ) );
 	HR( GetDevice( d3d )->CreateVertexShader( 
 		pBytecodeBlob->GetBufferPointer(),
 		pBytecodeBlob->GetBufferSize(),
 		nullptr,
-		&pVertexShader 
+		pVertexShader.GetAddressOf() 
 	) );
 }
 

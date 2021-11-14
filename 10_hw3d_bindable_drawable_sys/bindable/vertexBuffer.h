@@ -12,8 +12,6 @@ public:
 		:
 		stride( sizeof( V ) )
 	{
-		INFOMAN( gfx );
-
 		D3D11_BUFFER_DESC bd = {};
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.Usage = D3D11_USAGE_DEFAULT;
@@ -23,12 +21,12 @@ public:
 		bd.StructureByteStride = sizeof( V );
 		D3D11_SUBRESOURCE_DATA sd = {};
 		sd.pSysMem = vertices.data();
-		GFX_THROW_INFO( GetDevice( gfx )->CreateBuffer( &bd,&sd,&pVertexBuffer ) );
+		HR( GetDevice( d3d )->CreateBuffer( &bd,&sd,pVertexBuffer.GetAddressOf() ) );
 	}
 	void Bind( D3dClass& d3d ) noexcept override;
 protected:
 	UINT stride;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> pVertexBuffer;
+	ComPtr<ID3D11Buffer> pVertexBuffer;
 };
 
 

@@ -4,6 +4,10 @@
 #include <windows.h>
 #include "d3dclass.h"
 #include "ChiliTimer.h"
+#include <vector>
+#include <memory>
+#include "box.h"
+#include "graphics2D.h"
 
 class SystemClass
 {
@@ -28,7 +32,12 @@ private:
 	HWND m_hwnd;
 	int m_width;
 	int m_height;
+
+	std::unique_ptr<D3dClass> pD3d;
 	D3dClass* d3d;
+
+	std::vector<std::unique_ptr<class Box>> boxes;
+	std::unique_ptr<class Graphics2D> graphics2D;
 };
 
 #endif //__SYSTEMCLASS_H__

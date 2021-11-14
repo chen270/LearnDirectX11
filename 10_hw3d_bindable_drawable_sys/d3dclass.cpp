@@ -10,7 +10,7 @@
 D3dClass::D3dClass():m_vsync_enabled(false)
 {
 	char path[1024];
-	getcwd(path, 1024);
+	_getcwd(path, 1024);
 	printf("cwd path:%s\n", path);
 }
 
@@ -22,7 +22,7 @@ D3dClass::~D3dClass()
 
 void D3dClass::DrawTestCube(float angle, float x, float z)
 {
-	HRESULT hr;
+	//HRESULT hr;
 
 	// create vertex buffer (1 2d triangle at center of screen)
 	Vertex vertices[] =			// 顶点数组
@@ -423,7 +423,7 @@ int D3dClass::DrawTriangle(float angle)
 
 	//end *************************************************/
 
-
+#if 0
 	//create constant buffer start--------------------
 	struct ConstantBuffer
 	{
@@ -462,7 +462,7 @@ int D3dClass::DrawTriangle(float angle)
 
 	//不需要进行描述， 即不需要绑定 ID3D11InputLayout
 	//create constant buffer end----------------------
-
+#endif
 
 
 	//start ***********************************************/
@@ -794,7 +794,15 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 
 	THROW_D3D_EXCEPTION( pContext->OMSetRenderTargets(1u, pRenderTargetView.GetAddressOf(), pDepthStencilView.Get()) );
 
-
+	// configure viewport
+	D3D11_VIEWPORT vp;
+	vp.Width = static_cast<float>(m_screenWidth);
+	vp.Height = static_cast<float>(m_screenHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0.0f;
+	vp.TopLeftY = 0.0f;
+	pContext->RSSetViewports(1u, &vp);
 
 	return 0;
 }
@@ -804,7 +812,7 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 void D3dClass::DrawTestTriangleErr()
 {
 	namespace wrl = Microsoft::WRL;
-	HRESULT hr;
+	//HRESULT hr;
 
 	struct Vertex
 	{
@@ -849,4 +857,19 @@ void D3dClass::DrawTestTriangleErr()
 
 	THROW_D3D_EXCEPTION(pContext->Draw((UINT)std::size(vertices), 0u));
 	//pContext->Draw( (UINT)std::size( vertices ),0u );
+}
+
+void D3dClass::DrawIndexed(UINT count) noexcept(!IS_DEBUG)
+{
+	THROW_D3D_EXCEPTION(pContext->DrawIndexed(count, 0u, 0u));
+}
+
+void D3dClass::SetProjection(DirectX::FXMMATRIX proj) noexcept
+{
+	projection = proj;
+}
+
+DirectX::XMMATRIX D3dClass::GetProjection() const noexcept
+{
+	return projection;
 }
