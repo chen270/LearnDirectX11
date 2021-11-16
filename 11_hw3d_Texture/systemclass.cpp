@@ -30,7 +30,7 @@ int SystemClass::Init()
 	//设置视图矩阵
 	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, (float)m_height/(float)m_width, 0.5f, 40.0f));
 
-#if 0
+#if 1
 	std::mt19937 rng(std::random_device{}());
 	std::uniform_real_distribution<float> adist(0.0f, 3.1415f * 2.0f);
 	std::uniform_real_distribution<float> ddist(0.0f, 3.1415f * 2.0f);
@@ -38,7 +38,7 @@ int SystemClass::Init()
 	std::uniform_real_distribution<float> rdist(6.0f, 20.0f);
 	for (auto i = 0; i < 80; i++)
 	{
-		boxes.push_back(std::make_unique<Box>(
+		skinned_boxes.push_back(std::make_unique<SkinnedBox>(
 			*pD3d, rng, adist,
 			ddist, odist, rdist
 			));
@@ -47,9 +47,9 @@ int SystemClass::Init()
 
 #else
 
-	graphics2D = std::make_unique <Graphics2D>(m_width, m_height);
+	//graphics2D = std::make_unique <Graphics2D>(m_width, m_height);
 	//graphics2D->InitTriangle(*pD3d);
-	graphics2D->InitRectWithTexture(*pD3d, L"../data/cheese.jpg");
+	//graphics2D->InitRectWithTexture(*pD3d, L"../data/cheese.jpg");
 	//graphics2D->InitCube(*pD3d);
 #endif
 	return 0;
@@ -87,14 +87,14 @@ int SystemClass::Run()
 #else
 			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
 			auto dt = m_time.Mark();
-			/*for (auto& b : boxes)
+			for (auto& b : skinned_boxes)
 			{
 				b->Update(dt);
 				b->Draw(*pD3d);
-			}*/
+			}
 			
-			graphics2D->Update(m_time.Peek());
-			graphics2D->Draw(*pD3d);
+			//graphics2D->Update(m_time.Peek());
+			//graphics2D->Draw(*pD3d);
 			pD3d->EndFrame();
 #endif
 

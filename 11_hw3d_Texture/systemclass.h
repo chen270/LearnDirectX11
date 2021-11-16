@@ -8,6 +8,7 @@
 #include <memory>
 #include "box.h"
 #include "graphics2D.h"
+#include "skinned_box.h"
 
 class SystemClass
 {
@@ -37,6 +38,7 @@ private:
 	D3dClass* d3d;
 
 	std::vector<std::unique_ptr<class Box>> boxes;
+	std::vector<std::unique_ptr<class SkinnedBox>> skinned_boxes;
 	std::unique_ptr<class Graphics2D> graphics2D;
 };
 
