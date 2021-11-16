@@ -15,10 +15,17 @@ public:
 
 	void InitCube(D3dClass& d3d);
 
+	void InitRectWithTexture(D3dClass& d3d, WCHAR* texPath);
+
 private:
 	struct VertexWithColor {				// 定义一个顶点结构体，暂时就一个坐标属性
 		DirectX::XMFLOAT3 pos;
 		unsigned char color[4]; // RGBA 比float节省空间
+	};
+
+	struct VertexWithTex {
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT2 tex;
 	};
 
 	int m_screenWidth;

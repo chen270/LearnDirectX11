@@ -107,3 +107,50 @@ void Graphics2D::InitCube(D3dClass& d3d)
 
 	graph2DTransform = DirectX::XMMatrixTranslation(0, 0.0f, 0 + 4.0f);
 }
+
+void Graphics2D::InitRectWithTexture(D3dClass& d3d, WCHAR* texPath)
+{
+	if (!IsStaticInitialized())
+	{
+		std::vector<VertexWithTex> vertices =			// 顶点数组
+		{
+			{ DirectX::XMFLOAT3(-0.3f, -0.3f, 1.0f), DirectX::XMFLOAT2(0.0f,1.0f) },
+			{ DirectX::XMFLOAT3(-0.3f,  0.3f, 1.0f), DirectX::XMFLOAT2(0.0f,0.0f) },
+			{ DirectX::XMFLOAT3(0.3f,  0.3f,  1.0f) , DirectX::XMFLOAT2(1.0f,0.0f) },
+			{ DirectX::XMFLOAT3(0.3f, -0.3f,  1.0f), DirectX::XMFLOAT2(1.0f,1.0f) },
+		};
+
+		const std::vector<unsigned short> indices = { 0,1,2,
+													  0,2,3 };
+
+		AddStaticBind(std::make_unique<Texture>(d3d, texPath));
+
+		AddStaticBind(std::make_unique<VertexBuffer>(d3d, vertices));
+
+		auto pvs = std::make_unique<VertexShader>(d3d, L"../bin/tex_vs.cso");
+		auto pvsbc = pvs->GetBytecode();
+		AddStaticBind(std::move(pvs));
+
+		AddStaticBind(std::make_unique<PixelShader>(d3d, L"../bin/tex_ps.cso"));
+
+		AddStaticIndexBuffer(std::make_unique<IndexBuffer>(d3d, indices));
+
+		const std::vector<D3D11_INPUT_ELEMENT_DESC> ied =
+		{
+			{ "Position",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0 },
+			{ "TexCoord",0,DXGI_FORMAT_R32G32_FLOAT,0,D3D11_APPEND_ALIGNED_ELEMENT,D3D11_INPUT_PER_VERTEX_DATA,0 },
+		};
+		AddStaticBind(std::make_unique<InputLayout>(d3d, ied, pvsbc));
+
+		AddStaticBind(std::make_unique<Topology>(d3d, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST));
+	}
+	else
+	{
+		SetIndexFromStatic();
+	}
+
+	graph2DTransform = DirectX::XMMatrixScaling(ratio_hw, 1.0f, 1.0f) * DirectX::XMMatrixTranslation(0, 0.0f, 0 + 1.0f);
+
+	AddBind(std::make_unique<TransformCbuf>(d3d, *this));
+
+}

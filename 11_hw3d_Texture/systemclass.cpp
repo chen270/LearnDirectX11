@@ -48,7 +48,8 @@ int SystemClass::Init()
 #else
 
 	graphics2D = std::make_unique <Graphics2D>(m_width, m_height);
-	graphics2D->InitTriangle(*pD3d);
+	//graphics2D->InitTriangle(*pD3d);
+	graphics2D->InitRectWithTexture(*pD3d, L"../data/cheese.jpg");
 	//graphics2D->InitCube(*pD3d);
 #endif
 	return 0;
@@ -85,7 +86,7 @@ int SystemClass::Run()
 			pD3d->EndFrame();
 #else
 			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
-			//auto dt = m_time.Mark();
+			auto dt = m_time.Mark();
 			/*for (auto& b : boxes)
 			{
 				b->Update(dt);

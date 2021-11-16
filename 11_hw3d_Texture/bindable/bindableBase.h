@@ -10,5 +10,6 @@
 #include "transformCbuf.h"
 #include "vertexBuffer.h"
 #include "vertexShader.h"
+#include "texture.h"
 
 #endif // __BINDABLEBASE_H__
