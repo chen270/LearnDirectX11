@@ -10,7 +10,7 @@ void TransformCbuf::Bind(D3dClass& d3d) noexcept
 {
 	vcbuf.Update(d3d,
 		DirectX::XMMatrixTranspose(
-			parent.GetTransformXM() * d3d.GetProjection()
+			parent.GetTransformXM() * d3d.GetCamera() * d3d.GetProjection()
 		)
 	);
 	vcbuf.Bind(d3d);

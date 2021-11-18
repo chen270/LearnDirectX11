@@ -33,8 +33,16 @@ public:
 	void DrawIndexed(UINT count) noexcept(!IS_DEBUG);
 	void SetProjection(DirectX::FXMMATRIX proj) noexcept;
 	DirectX::XMMATRIX GetProjection() const noexcept;
+
+	void SetCamera(DirectX::FXMMATRIX camera) noexcept;
+	DirectX::XMMATRIX GetCamera() const noexcept;
+
 private:
 	DirectX::XMMATRIX projection;
+
+	//camera
+	DirectX::XMMATRIX camera;
+
 public:
 	bool m_vsync_enabled;
 	int m_screenWidth;

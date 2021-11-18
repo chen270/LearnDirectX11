@@ -876,3 +876,13 @@ DirectX::XMMATRIX D3dClass::GetProjection() const noexcept
 {
 	return projection;
 }
+
+void D3dClass::SetCamera(DirectX::FXMMATRIX cam) noexcept
+{
+	camera = cam;
+}
+
+DirectX::XMMATRIX D3dClass::GetCamera() const noexcept
+{
+	return camera;
+}

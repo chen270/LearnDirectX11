@@ -1,6 +1,9 @@
 ﻿#include "systemclass.h"
 #include "math.h"
 #include "misc/imguiManager.h"
+#include "misc/imgui/imgui.h"
+#include "misc/imgui/imgui_impl_win32.h"
+#include "misc/imgui/imgui_impl_dx11.h"
 
 #define CHECK_RES(res, str) \
 if (res < 0) { perror(str); exit(-1); } \
@@ -39,6 +42,7 @@ int SystemClass::Init()
 	//3.Init Graphics
 	//设置视图矩阵
 	pD3d->SetProjection(DirectX::XMMatrixPerspectiveLH(1.0f, (float)m_height/(float)m_width, 0.5f, 40.0f));
+	pD3d->SetCamera(DirectX::XMMatrixTranslation(0.0f, 0.0f, 20.0f));
 
 #if 1
 	std::mt19937 rng(std::random_device{}());
@@ -65,6 +69,56 @@ int SystemClass::Init()
 	return 0;
 }
 
+void SystemClass::DoFrame()
+{
+	//DirectX11
+	const auto dt = m_time.Mark() * speed_factor;
+
+#if 0
+	//当前画出的图形随着窗口的大小而改变
+	//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
+	pD3d->DrawTriangle(m_time.Peek());
+	//pD3d->DrawCube(m_time.Peek(), 0, 0);
+	//pD3d->DrawCube(-m_time.Peek(), -1.0, 0.0);
+	//d3d->DrawRect();
+	pD3d->EndFrame();
+#else
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
+
+	pD3d->SetCamera(cam.GetMatrix());
+	//auto dt = m_time.Mark();
+	for (auto& b : skinned_boxes)
+	{
+		b->Update(dt);
+		b->Draw(*pD3d);
+	}
+
+	//graphics2D->Update(m_time.Peek());
+	//graphics2D->Draw(*pD3d);
+
+	//Imgui
+	//m_imguiManager->ShowImGui();
+
+	static char buffer[1024];
+	// imgui window to control simulation speed
+	if (ImGui::Begin("Simulation Speed"))
+	{
+		ImGui::SliderFloat("Speed Factor", &speed_factor, 0.0f, 4.0f);
+		ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::InputText("Butts", buffer, sizeof(buffer));
+	}
+	ImGui::End();
+
+	cam.SpawnControlWindow();
+
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+#endif
+}
 
 int SystemClass::Run()
 {
@@ -84,35 +138,9 @@ int SystemClass::Run()
 			break;
 		else
 		{
-			//DirectX11
-#if 0
-			//当前画出的图形随着窗口的大小而改变
-			//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
 			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
-			pD3d->DrawTriangle(m_time.Peek());
-			//pD3d->DrawCube(m_time.Peek(), 0, 0);
-			//pD3d->DrawCube(-m_time.Peek(), -1.0, 0.0);
-			//d3d->DrawRect();
+			DoFrame();
 			pD3d->EndFrame();
-#else
-			pD3d->ClearBuffer(0.5f, 0.5f, 0.5f);
-			auto dt = m_time.Mark();
-			for (auto& b : skinned_boxes)
-			{
-				b->Update(dt);
-				b->Draw(*pD3d);
-			}
-			
-
-
-			//graphics2D->Update(m_time.Peek());
-			//graphics2D->Draw(*pD3d);
-
-			//Imgui
-			m_imguiManager->ShowImGui();
-
-			pD3d->EndFrame();
-#endif
 
 		}
 	}
