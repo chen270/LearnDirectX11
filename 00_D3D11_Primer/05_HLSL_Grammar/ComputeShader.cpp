@@ -104,16 +104,6 @@ void ComputeShader::InitComputeUnorderedAccessView(ComPtr<ID3D11Buffer> pBuffer,
 //运行Shader Compute程序
 void ComputeShader::RunGPUCompute()
 {
-	//初始化计算数据
-	for (int i = 0; i < NUM_ELEMENTS; i++)
-	{
-		s_vBuf0[i].i = i;
-		s_vBuf0[i].f = (float)i;
-
-		s_vBuf1[i].i = i;
-		s_vBuf1[i].f = (float)i;
-	}
-
 	//各个Buffer指针变量
 	ComPtr<ID3D11Buffer>srcBuffer0;
 	ComPtr<ID3D11Buffer>srcBuffer1;
@@ -148,7 +138,7 @@ void ComputeShader::RunGPUCompute()
 	InitComputeBuffer(s_vBuf0, sizeof(struct BufType), NUM_ELEMENTS, srcBuffer0);
 	InitComputeBuffer(s_vBuf1, sizeof(struct BufType), NUM_ELEMENTS, srcBuffer1);
 	InitComputeBuffer(nullptr, sizeof(struct BufType), NUM_ELEMENTS, resultBuffer);
-	InitComputeBuffer(nullptr, sizeof(struct BufType), NUM_ELEMENTS, srcDstBuffer);
+	InitComputeBuffer(localBuffer, sizeof(localBuffer[0]), _countof(localBuffer), srcDstBuffer);
 
 
 	//4. 在D3D11中，常量缓存至少需要4个int元素
@@ -186,7 +176,7 @@ void ComputeShader::RunGPUCompute()
 	pContext->CSSetUnorderedAccessViews(0, _countof(unorderedAccessViews), unorderedAccessViews, NULL);
 	pContext->Dispatch(NUM_ELEMENTS, 1, 1);
 
-	//清空Shader和各个Shader Resource View、Unordered Access View以及一些Constant Buffer
+	//8. 清空Shader和各个Shader Resource View、Unordered Access View以及一些Constant Buffer
 	pContext->CSSetShader(NULL, NULL, 0);
 
 	ID3D11UnorderedAccessView* ppUAViewNULL[] = { NULL, NULL };
@@ -199,7 +189,7 @@ void ComputeShader::RunGPUCompute()
 	pContext->CSSetConstantBuffers(0, 1, ppCBNULL);
 
 
-	//8.将GPU计算的结果写回CPU
+	//9.将GPU计算的结果写回CPU
 	ComPtr<ID3D11Buffer> debugBuf;
 	desc = {};
 	resultBuffer->GetDesc(&desc);
@@ -208,12 +198,12 @@ void ComputeShader::RunGPUCompute()
 	desc.BindFlags = 0;
 	desc.MiscFlags = 0;
 
-	//8.1 先查看resultBuffer中的内容
+	//9.1 先查看resultBuffer中的内容
 	HR(pDevice->CreateBuffer(&desc, NULL, &debugBuf));
 	THROW_D3D_EXCEPTION(pContext->CopyResource((ID3D11Resource*)debugBuf.Get(),
 		(ID3D11Resource*)resultBuffer.Get()));//取到 debugBuf 中
 
-	//8.2 拿到 CPU 内存中
+	//9.2 拿到 CPU 内存中
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	pContext->Map((ID3D11Resource*)debugBuf.Get(), 0, D3D11_MAP_READ, 0, &mappedResource);
 	struct BufType* p = (struct BufType*)mappedResource.pData;
@@ -229,7 +219,7 @@ void ComputeShader::RunGPUCompute()
 	pContext->Unmap((ID3D11Resource*)debugBuf.Get(), 0);
 
 
-	//8.3 再查看srcdstBuffer中的内容
+	//9.3 再查看srcdstBuffer中的内容
 	D3D11_BUFFER_DESC desc2 = {};
 	srcDstBuffer->GetDesc(&desc2);
 	desc2.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
