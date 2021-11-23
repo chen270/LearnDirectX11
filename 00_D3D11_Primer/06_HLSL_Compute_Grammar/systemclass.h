@@ -4,6 +4,7 @@
 #include <windows.h>
 #include "d3dclass.h"
 #include "ChiliTimer.h"
+#include <memory>
 
 class SystemClass
 {
@@ -28,7 +29,9 @@ private:
 	HWND m_hwnd;
 	int m_width;
 	int m_height;
-	D3dClass* d3d;
+
+	std::unique_ptr<D3dClass>d3d;
+	//D3dClass* d3d;
 };
 
 #endif //__SYSTEMCLASS_H__

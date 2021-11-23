@@ -142,7 +142,7 @@ void ComputeShader::RunGPUCompute()
 
 
 	//4. 在D3D11中，常量缓存至少需要4个int元素
-	int value[4] = { 10, 20 };
+	int value[4] = { 10, 20 }; // 传入系数
 	D3D11_BUFFER_DESC desc = {};
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	desc.ByteWidth = sizeof(value);

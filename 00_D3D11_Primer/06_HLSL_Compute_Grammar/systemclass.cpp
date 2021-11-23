@@ -10,12 +10,11 @@ SystemClass::SystemClass()
 	m_width = 800;
 	m_height = 600;
 
-	d3d = new D3dClass();
+	d3d = std::make_unique<D3dClass>();
 }
 
 SystemClass::~SystemClass()
 {
-	delete d3d;
 }
 
 int SystemClass::Init()
@@ -86,7 +85,6 @@ int SystemClass::Shutdown()
 	res = ShutdownWindow();
 	CHECK_RES(res, "ShutdownWindow error");
 
-	delete d3d;
 	return 0;
 }
 
