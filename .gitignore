@@ -37,3 +37,5 @@
 /00_D3D11_Primer/05_HLSL_Grammar/build
 /00_D3D11_Primer/06_HLSL_Compute_Grammar/build
 /00_D3D11_Primer/06_HLSL_Compute_Grammar/bin
+/00_D3D11_Primer/07_Index_Constant_Buffer/bin
+/00_D3D11_Primer/07_Index_Constant_Buffer/build
