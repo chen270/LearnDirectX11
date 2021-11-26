@@ -62,7 +62,7 @@ public:
 
 	void InitShader_CSO();
 	void InitShader_INC();
-	void InitShader_CompileInRunTime();
+	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath);
 	void InitTriangleResource();
 	void InitCubeResource();
 

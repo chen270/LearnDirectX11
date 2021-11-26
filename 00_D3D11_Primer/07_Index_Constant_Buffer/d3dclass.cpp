@@ -918,7 +918,7 @@ void D3dClass::InitShader_INC()
 		sizeof(g_Triangle_PS), nullptr, pPixelShader.GetAddressOf()));
 }
 
-void D3dClass::InitShader_CompileInRunTime()
+void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath)
 {
 	//用来查错的Blob对象
 	ComPtr<ID3DBlob> pErrorMessage;
@@ -928,12 +928,12 @@ void D3dClass::InitShader_CompileInRunTime()
 	ComPtr<ID3DBlob>  pPixelShaderBlob;
 
 	// 1.编译顶点着色器
-	HR( D3DCompileFromFile(L"../shader/Triangle_VS.hlsl", nullptr,
+	HR( D3DCompileFromFile(vsFilePath, nullptr,
 		D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0",
 		D3DCOMPILER_STRIP_DEBUG_INFO, 0,
 		pVertexShaderBlob.GetAddressOf(), pErrorMessage.ReleaseAndGetAddressOf()) );
 
-	HR(D3DCompileFromFile(L"../shader/Triangle_PS.hlsl", nullptr,
+	HR(D3DCompileFromFile(psFilePath, nullptr,
 		D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0",
 		D3DCOMPILER_STRIP_DEBUG_INFO, 0,
 		pPixelShaderBlob.GetAddressOf(), pErrorMessage.ReleaseAndGetAddressOf()));
@@ -958,7 +958,7 @@ void D3dClass::InitShader_CompileInRunTime()
 void D3dClass::InitTriangleResource()
 {
 
-	InitShader_CompileInRunTime();
+	InitShader_CompileInRunTime(L"../shader/Triangle_VS.hlsl", L"../shader/Triangle_PS.hlsl");
 
 	using namespace DirectX;
 	VertexPosColor vertices[] = {
@@ -1024,7 +1024,7 @@ void D3dClass::InitTriangleResource()
 
 void D3dClass::InitCubeResource()
 {
-	InitShader_CompileInRunTime();
+	InitShader_CompileInRunTime(L"../shader/Cube_VS.hlsl", L"../shader/Cube_PS.hlsl");
 
 	using namespace DirectX;
 
@@ -1108,6 +1108,45 @@ void D3dClass::InitCubeResource()
 
 	// 输入装配阶段的索引缓冲区设置
 	pContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+
+	/************************************************************************/
+	/* 3.常量缓冲区                                                         */
+	/************************************************************************/
+	struct ConstantBuffer
+	{
+		XMMATRIX world;
+		XMMATRIX view;
+		XMMATRIX proj;
+	};
+	D3D11_BUFFER_DESC cbd;
+	ZeroMemory(&cbd, sizeof(cbd));
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.ByteWidth = sizeof(ConstantBuffer);
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	ComPtr<ID3D11Buffer> m_pConstantBuffer;
+	// 新建常量缓冲区，不使用初始数据
+	HR(pDevice->CreateBuffer(&cbd, nullptr, m_pConstantBuffer.GetAddressOf()));
+
+	ConstantBuffer m_CBuffer;
+	m_CBuffer.world = XMMatrixIdentity();    // 单位矩阵的转置是它本身
+	m_CBuffer.view = XMMatrixTranspose(XMMatrixLookAtLH(
+		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
+		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+	));
+	float ratio_hw = (float)m_screenHeight / (float)m_screenWidth;
+	m_CBuffer.proj = XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, ratio_hw, 1.0f, 1000.0f));
+
+
+	D3D11_MAPPED_SUBRESOURCE mappedData;
+	HR(pContext->Map(m_pConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+	memcpy_s(mappedData.pData, sizeof(m_CBuffer), &m_CBuffer, sizeof(m_CBuffer));
+	pContext->Unmap(m_pConstantBuffer.Get(), 0);
+
+	pContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 
 	/************************************************************************/
