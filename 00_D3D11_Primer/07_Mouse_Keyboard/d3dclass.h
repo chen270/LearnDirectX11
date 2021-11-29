@@ -65,7 +65,7 @@ public:
 	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath);
 	void InitTriangleResource();
 	void InitCubeResource();
-	void UpdateScene(float dt);
+	void UpdateScene(float x, float y);
 	struct ConstantBuffer
 	{
 		DirectX::XMMATRIX world;

@@ -1154,12 +1154,15 @@ void D3dClass::InitCubeResource()
 	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
 }
 
-void D3dClass::UpdateScene(float dt)
+void D3dClass::UpdateScene(float x, float y)
 {
 
 	static float phi = 0.0f, theta = 0.0f;
 	phi += 0.0001f, theta += 0.00015f;
-	m_CBuffer.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationX(phi) * DirectX::XMMatrixRotationY(theta));
+	//m_CBuffer.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationX(phi) * DirectX::XMMatrixRotationY(theta));
+
+	m_CBuffer.world = DirectX::XMMatrixRotationY(x) * DirectX::XMMatrixRotationX(y);
+
 	// 更新常量缓冲区，让立方体转起来
 	D3D11_MAPPED_SUBRESOURCE mappedData;
 	HR(pContext->Map(m_pConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));

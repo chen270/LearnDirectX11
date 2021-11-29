@@ -5,12 +5,17 @@
 if (res < 0) { perror(str); exit(-1); } \
 
 
+std::unique_ptr<DirectX::Mouse> SystemClass::m_mouse = nullptr;
+
 SystemClass::SystemClass()
 {
 	m_width = 800;
 	m_height = 600;
 
 	d3d = std::make_unique<D3dClass>();
+
+	m_mouse = std::make_unique<DirectX::Mouse>();
+	m_MouseTracker = std::make_unique<DirectX::Mouse::ButtonStateTracker>();
 }
 
 SystemClass::~SystemClass()
@@ -28,6 +33,10 @@ int SystemClass::Init()
 	//2.D3d
 	res = d3d->InitD3d11(this->m_hwnd, m_width, m_height);
 	CHECK_RES(res, "InitD3d11 error");
+
+	// Mouse
+	m_mouse->SetWindow(this->m_hwnd);
+	m_mouse->SetMode(DirectX::Mouse::MODE_ABSOLUTE);
 
 	//3.Init Resource
 	//d3d->InitResource();
@@ -69,7 +78,19 @@ int SystemClass::Run()
 			//d3d->DrawRect();
 			d3d->EndFrame();
 #else
-			d3d->UpdateScene(m_time.Peek());
+			// 获取鼠标状态
+			DirectX::Mouse::State mouseState = m_mouse->GetState();
+			DirectX::Mouse::State lastMouseState = m_MouseTracker->GetLastState();
+			
+			// 更新鼠标按钮状态跟踪器，仅当鼠标按住的情况下才进行移动
+			float cubeTheta = 0, cubePhi = 0;
+			m_MouseTracker->Update(mouseState);
+			if (mouseState.leftButton == true && m_MouseTracker->leftButton == m_MouseTracker->HELD)
+			{
+				cubeTheta -= (mouseState.x - lastMouseState.x) * 0.01f;
+				cubePhi -= (mouseState.y - lastMouseState.y) * 0.01f;
+			}
+			d3d->UpdateScene(cubeTheta, cubePhi);
 			d3d->DrawScene();
 			//d3d->Compute();
 			//d3d->UseComputeShader();
@@ -158,6 +179,26 @@ LRESULT CALLBACK SystemClass::WndProc(HWND hwnd, UINT message, WPARAM wparam, LP
 {
 	switch (message)
 	{
+	// 监测这些键盘/鼠标事件
+	case WM_INPUT:
+
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_XBUTTONDOWN:
+
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+	case WM_XBUTTONUP:
+
+	case WM_MOUSEWHEEL:
+	case WM_MOUSEHOVER:
+	case WM_MOUSEMOVE:
+		m_mouse->ProcessMessage(message, wparam, lparam);
+		return 0;
+
+
 		// Check if the window is being destroyed.
 	case WM_DESTROY:
 	{
