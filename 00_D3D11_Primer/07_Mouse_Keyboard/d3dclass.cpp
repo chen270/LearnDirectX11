@@ -1161,7 +1161,7 @@ void D3dClass::UpdateScene(float x, float y)
 	phi += 0.0001f, theta += 0.00015f;
 	//m_CBuffer.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationX(phi) * DirectX::XMMatrixRotationY(theta));
 
-	m_CBuffer.world = DirectX::XMMatrixRotationY(x) * DirectX::XMMatrixRotationX(y);
+	m_CBuffer.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationY(x) * DirectX::XMMatrixRotationX(y));
 
 	// 更新常量缓冲区，让立方体转起来
 	D3D11_MAPPED_SUBRESOURCE mappedData;

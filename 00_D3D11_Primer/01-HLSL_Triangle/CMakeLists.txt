@@ -50,7 +50,10 @@ foreach(v ${SHADER_LIST})
     STRING( REGEX MATCH  ".*PS.hlsl" prjNamePS3 ${v})
     IF(NOT(prjNamePS STREQUAL "") OR NOT(prjNamePS2 STREQUAL "") OR NOT(prjNamePS3 STREQUAL ""))
         message("--${v} set PROPERTIES - Pixel")
-        set_source_files_properties(${v} PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 4.0)
+        set_source_files_properties(${v} PROPERTIES VS_SHADER_TYPE Pixel VS_SHADER_MODEL 4.0
+        VS_SHADER_ENABLE_DEBUG $<$<CONFIG:Debug>:true>
+        VS_SHADER_DISABLE_OPTIMIZATIONS $<$<CONFIG:Debug>:true>
+        )
     ENDIF()
 
     STRING( REGEX MATCH  ".*vs.hlsl" prjNameVS ${v} )
@@ -58,7 +61,10 @@ foreach(v ${SHADER_LIST})
     STRING( REGEX MATCH  ".*VS.hlsl" prjNameVS3 ${v} )
     IF(NOT(prjNameVS STREQUAL "") OR NOT(prjNameVS2 STREQUAL "") OR NOT(prjNameVS3 STREQUAL ""))
         message("--${v} set PROPERTIES - Vertex")
-        set_source_files_properties(${v} PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 4.0)
+        set_source_files_properties(${v} PROPERTIES VS_SHADER_TYPE Vertex VS_SHADER_MODEL 4.0
+        VS_SHADER_ENABLE_DEBUG $<$<CONFIG:Debug>:true>
+        VS_SHADER_DISABLE_OPTIMIZATIONS $<$<CONFIG:Debug>:true>
+        )
     ENDIF()
 endforeach()
 

@@ -83,7 +83,7 @@ int SystemClass::Run()
 			DirectX::Mouse::State lastMouseState = m_MouseTracker->GetLastState();
 			
 			// 更新鼠标按钮状态跟踪器，仅当鼠标按住的情况下才进行移动
-			float cubeTheta = 0, cubePhi = 0;
+			static float cubePhi = 0.0f, cubeTheta = 0.0f;
 			m_MouseTracker->Update(mouseState);
 			if (mouseState.leftButton == true && m_MouseTracker->leftButton == m_MouseTracker->HELD)
 			{
