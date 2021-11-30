@@ -6,6 +6,7 @@ if (res < 0) { perror(str); exit(-1); } \
 
 
 std::unique_ptr<DirectX::Mouse> SystemClass::m_mouse = nullptr;
+std::unique_ptr<DirectX::Keyboard> SystemClass::m_keyboard = nullptr;
 
 SystemClass::SystemClass()
 {
@@ -16,6 +17,9 @@ SystemClass::SystemClass()
 
 	m_mouse = std::make_unique<DirectX::Mouse>();
 	m_MouseTracker = std::make_unique<DirectX::Mouse::ButtonStateTracker>();
+
+	m_keyboard = std::make_unique<DirectX::Keyboard>();
+	m_KeyboardTracker = std::make_unique<DirectX::Keyboard::KeyboardStateTracker>();
 }
 
 SystemClass::~SystemClass()
@@ -34,7 +38,7 @@ int SystemClass::Init()
 	res = d3d->InitD3d11(this->m_hwnd, m_width, m_height);
 	CHECK_RES(res, "InitD3d11 error");
 
-	// Mouse
+	// Mouse & Keyboard
 	m_mouse->SetWindow(this->m_hwnd);
 	m_mouse->SetMode(DirectX::Mouse::MODE_ABSOLUTE);
 
@@ -90,6 +94,20 @@ int SystemClass::Run()
 				cubeTheta -= (mouseState.x - lastMouseState.x) * 0.01f;
 				cubePhi -= (mouseState.y - lastMouseState.y) * 0.01f;
 			}
+
+			//键盘
+			float dt = m_time.Peek() * 0.0001f;
+			DirectX::Keyboard::State keyState = m_keyboard->GetState();
+			if (keyState.IsKeyDown(DirectX::Keyboard::W))
+				cubePhi += dt * 2;
+			if (keyState.IsKeyDown(DirectX::Keyboard::S))
+				cubePhi -= dt * 2;
+			if (keyState.IsKeyDown(DirectX::Keyboard::A))
+				cubeTheta += dt * 2;
+			if (keyState.IsKeyDown(DirectX::Keyboard::D))
+				cubeTheta -= dt * 2;
+
+
 			d3d->UpdateScene(cubeTheta, cubePhi);
 			d3d->DrawScene();
 			//d3d->Compute();
@@ -197,9 +215,18 @@ LRESULT CALLBACK SystemClass::WndProc(HWND hwnd, UINT message, WPARAM wparam, LP
 	case WM_MOUSEMOVE:
 		m_mouse->ProcessMessage(message, wparam, lparam);
 		return 0;
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		m_keyboard->ProcessMessage(message, wparam, lparam);
+		return 0;
+	case WM_ACTIVATEAPP:
+		m_mouse->ProcessMessage(message, wparam, lparam);
+		m_keyboard->ProcessMessage(message, wparam, lparam);
+		return 0;
 
-
-		// Check if the window is being destroyed.
+	// Check if the window is being destroyed.
 	case WM_DESTROY:
 	{
 		PostQuitMessage(0);
