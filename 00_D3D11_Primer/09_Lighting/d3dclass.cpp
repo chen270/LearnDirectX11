@@ -9,11 +9,26 @@
 #include "ComputeShader.h"
 
 
+
+inline DirectX::XMMATRIX XM_CALLCONV InverseTranspose(DirectX::FXMMATRIX M)
+{
+	using namespace DirectX;
+
+	// 世界矩阵的逆的转置仅针对法向量，我们也不需要世界矩阵的平移分量
+	// 而且不去掉的话，后续再乘上观察矩阵之类的就会产生错误的变换结果
+	XMMATRIX A = M;
+	A.r[3] = g_XMIdentityR3;
+
+	return XMMatrixTranspose(XMMatrixInverse(nullptr, A));
+}
+
 D3dClass::D3dClass():m_vsync_enabled(false)
 {
 	char path[1024];
 	_getcwd(path, 1024);
 	printf("cwd path:%s\n", path);
+
+	m_pKeyboard = std::make_unique<DirectX::Keyboard>();
 }
 
 
@@ -192,95 +207,6 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 	pContext->RSSetViewports(1, &vp);
 
 	return 0;
-}
-
-
-//Error code for test
-void D3dClass::DrawTestTriangleErr()
-{
-	namespace wrl = Microsoft::WRL;
-	HRESULT hr;
-
-	struct Vertex
-	{
-		float x;
-		float y;
-	};
-
-	// create vertex buffer (1 2d triangle at center of screen)
-	const Vertex vertices[] =
-	{
-		{ 0.0f,0.5f },
-		{ 0.5f,-0.5f },
-		{ -0.5f,-0.5f },
-	};
-	wrl::ComPtr<ID3D11Buffer> pVertexBuffer;
-	D3D11_BUFFER_DESC bd = {};
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0u;
-	bd.MiscFlags = 0u;
-	bd.ByteWidth = sizeof(vertices);
-	bd.StructureByteStride = sizeof(Vertex);
-	D3D11_SUBRESOURCE_DATA sd = {};
-	sd.pSysMem = vertices;
-	HR(pDevice->CreateBuffer(&bd, &sd, &pVertexBuffer));
-
-	// Bind vertex buffer to pipeline
-	const UINT stride = sizeof(Vertex);
-	const UINT offset = 0u;
-	pContext->IASetVertexBuffers(0u, 1u, &pVertexBuffer, &stride, &offset);
-
-
-	// create vertex shader
-	//wrl::ComPtr<ID3D11VertexShader> pVertexShader;
-	//wrl::ComPtr<ID3DBlob> pBlob;
-	//HR(D3DReadFileToBlob(L"VertexShader.cso", &pBlob));
-	//HR(pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader));
-
-	//// bind vertex shader
-	//pContext->VSSetShader(pVertexShader.Get(), nullptr, 0u);
-
-
-	THROW_D3D_EXCEPTION(pContext->Draw((UINT)std::size(vertices), 0u));
-	//pContext->Draw( (UINT)std::size( vertices ),0u );
-}
-
-
-static const D3D11_INPUT_ELEMENT_DESC inputLayout[2] = {
-	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0} //RGBA
-};
-
-
-void D3dClass::InitShader_CSO()
-{
-	//1.读取编译好的着色器二进制信息
-	ComPtr<ID3DBlob> pBlobVS;
-	HR(D3DReadFileToBlob(L"../bin/Triangle_VS.cso", pBlobVS.GetAddressOf()));
-
-	//2.创建顶点着色器
-	/*ComPtr<ID3D11VertexShader> pVertexShader;*/
-	HR(pDevice->CreateVertexShader(pBlobVS->GetBufferPointer(),
-		pBlobVS->GetBufferSize(), nullptr, pVertexShader.GetAddressOf()));
-
-
-	//3.设置输入布局(Input Layout)-即定义: 读取编译好的着色器的方法
-	ComPtr<ID3D11InputLayout> pInputLayout;
-	HR(pDevice->CreateInputLayout(inputLayout, ARRAYSIZE(inputLayout),
-		pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), pInputLayout.GetAddressOf()));
-
-	pContext->IASetInputLayout(pInputLayout.Get());   // [In]输入布局
-
-
-	//4.像素着色器
-	ComPtr<ID3DBlob> pBlobPS;
-	HR(D3DReadFileToBlob(L"../bin/Triangle_PS.cso", pBlobPS.GetAddressOf()));
-
-	//ComPtr<ID3D11PixelShader> pPixelShader;
-	HR(pDevice->CreatePixelShader(pBlobPS->GetBufferPointer(),
-		pBlobPS->GetBufferSize(), nullptr, pPixelShader.GetAddressOf()));
-
 }
 
 
@@ -468,7 +394,7 @@ void D3dClass::InitLightResource()
 }
 
 
-void D3dClass::UpdateScene(float x, float y)
+void D3dClass::UpdateScene(float dt)
 {
 	using namespace DirectX;
 	static float phi = 0.0f, theta = 0.0f;
@@ -524,18 +450,18 @@ void D3dClass::UpdateScene(float x, float y)
 	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::S))
 	{
 		m_IsWireframeMode = !m_IsWireframeMode;
-		m_pd3dImmediateContext->RSSetState(m_IsWireframeMode ? m_pRSWireframe.Get() : nullptr);
+		pContext->RSSetState(m_IsWireframeMode ? m_pRSWireframe.Get() : nullptr);
 	}
 
 	// 更新常量缓冲区，让立方体转起来
 	D3D11_MAPPED_SUBRESOURCE mappedData;
-	HR(m_pd3dImmediateContext->Map(m_pConstantBuffers[0].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+	HR(pContext->Map(m_pConstantBuffers[0].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
 	memcpy_s(mappedData.pData, sizeof(VSConstantBuffer), &m_VSConstantBuffer, sizeof(VSConstantBuffer));
-	m_pd3dImmediateContext->Unmap(m_pConstantBuffers[0].Get(), 0);
+	pContext->Unmap(m_pConstantBuffers[0].Get(), 0);
 
-	HR(m_pd3dImmediateContext->Map(m_pConstantBuffers[1].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+	HR(pContext->Map(m_pConstantBuffers[1].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
 	memcpy_s(mappedData.pData, sizeof(PSConstantBuffer), &m_PSConstantBuffer, sizeof(PSConstantBuffer));
-	m_pd3dImmediateContext->Unmap(m_pConstantBuffers[1].Get(), 0);
+	pContext->Unmap(m_pConstantBuffers[1].Get(), 0);
 }
 
 void D3dClass::DrawScene()
@@ -555,9 +481,8 @@ void D3dClass::DrawScene()
 	HR(pSwap->Present(0, 0));
 }
 
-void D3dClass::UseComputeShader()
+float D3dClass::AspectRatio()
 {
-	ComputeShader* computeShader = new ComputeShader(pDevice, pContext);
-	computeShader->RunGPUCompute();
-	delete computeShader;
+	return static_cast<float>(m_screenWidth) / m_screenHeight;
 }
+

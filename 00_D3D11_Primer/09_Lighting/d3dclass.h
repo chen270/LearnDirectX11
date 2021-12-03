@@ -7,6 +7,9 @@
 #include <wrl/client.h>
 #include "Geometry.h"
 #include "LightHelper.h"
+#include "misc/m_k/keyboard.h"
+#include "misc/m_k/mouse.h"
+using namespace DirectX;
 
 class D3dClass
 {
@@ -30,6 +33,7 @@ private:
 	template <class T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
+
 	//D3d设备三要素
 	ComPtr<ID3D11Device>			pDevice			  = nullptr;//分配内存，创建资源
 	ComPtr<IDXGISwapChain>			pSwap			  = nullptr;
@@ -41,17 +45,17 @@ private:
 	//深度模板视图
 	ComPtr<ID3D11DepthStencilView>  pDepthStencilView = nullptr;
 
-
-private:
-	void DrawTestTriangleErr();
-
 public:
 	bool ResetMesh(const Geometry::MeshData<VertexPosNormalColor>& meshData);
-	void InitShader_CSO();
 	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath, const D3D11_INPUT_ELEMENT_DESC* _inputLayout, UINT _numelement);
-	void InitTriangleResource();
-	void InitCubeResource();
-	void UpdateScene(float x, float y);
+	void UpdateScene(float dt);
+	void InitLightResource();
+	void DrawScene();
+
+private:
+	float AspectRatio();
+
+private:
 	struct VSConstantBuffer
 	{
 		DirectX::XMMATRIX world;
@@ -70,7 +74,6 @@ public:
 
 	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 索引缓冲区
 	ComPtr<ID3D11Buffer> m_pVertexBuffer;			// 顶点缓冲区
-	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 索引缓冲区
 	ComPtr<ID3D11Buffer> m_pConstantBuffers[2];	    // 常量缓冲区
 
 	DirectionalLight m_DirLight;					// 默认环境光
@@ -84,21 +87,11 @@ public:
 	bool m_IsWireframeMode;							// 当前是否为线框模式
 	UINT m_IndexCount;							    // 绘制物体的索引数组大小
 
-	void InitLightResource();
-	void DrawScene();
-	void UseComputeShader();
-
-
 	ComPtr<ID3D11VertexShader> pVertexShader;
 	ComPtr<ID3D11PixelShader> pPixelShader;
 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureInputA;
-	ComPtr<ID3D11ShaderResourceView> m_pTextureInputB;
-
-	ComPtr<ID3D11Texture2D> m_pTextureOutputA;
-	ComPtr<ID3D11Texture2D> m_pTextureOutputB;
-	ComPtr<ID3D11UnorderedAccessView> m_pTextureOutputA_UAV;
-	ComPtr<ID3D11UnorderedAccessView> m_pTextureOutputB_UAV;
+	DirectX::Keyboard::KeyboardStateTracker m_KeyboardTracker;
+	std::unique_ptr<DirectX::Keyboard>m_pKeyboard;
 };
 
 #endif //__D3DCLASS_H__

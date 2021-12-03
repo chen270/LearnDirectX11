@@ -73,12 +73,13 @@ int SystemClass::Run()
 		else
 		{
 			//DirectX11
-#if 0
+#if 1
 			//当前画出的图形随着窗口的大小而改变
 			//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
 			d3d->ClearBuffer(0.5f, 0.5f, 0.5f);
+			d3d->UpdateScene(m_time.Peek());
 			//d3d->DrawTriangle(m_time.Peek());
-			d3d->DrawCube(m_time.Peek(), 0, 0);
+			//d3d->DrawCube(m_time.Peek(), 0, 0);
 			//d3d->DrawCube(-m_time.Peek(),-1.0,0.0);
 			//d3d->DrawRect();
 			d3d->EndFrame();
