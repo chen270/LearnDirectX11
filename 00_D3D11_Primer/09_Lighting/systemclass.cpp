@@ -39,12 +39,13 @@ int SystemClass::Init()
 	CHECK_RES(res, "InitD3d11 error");
 
 	// Mouse & Keyboard
-	m_mouse->SetWindow(this->m_hwnd);
-	m_mouse->SetMode(DirectX::Mouse::MODE_ABSOLUTE);
+	//m_mouse->SetWindow(this->m_hwnd);
+	//m_mouse->SetMode(DirectX::Mouse::MODE_ABSOLUTE);
 
 	//3.Init Resource
 	//d3d->InitResource();
-	d3d->InitCubeResource();
+	//d3d->InitCubeResource();
+	d3d->InitLightResource();
 	//d3d->InitTriangleResource();
 	//d3d->InitComputeShaderResource();
 	//d3d->UseComputeShader();

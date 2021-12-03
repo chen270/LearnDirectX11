@@ -5,6 +5,8 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>
+#include "Geometry.h"
+#include "LightHelper.h"
 
 class D3dClass
 {
@@ -18,10 +20,6 @@ public:
 	int InitD3d11(HWND hwnd, int screenWidth, int screenHeight);
 	int EndFrame();
 	int ClearBuffer(float r, float g, float b) noexcept;
-	int DrawTriangle(float angle);
-	int DrawRect();
-	int DrawCube(float angle, float x, float z);
-	void DrawTestCube(float angle, float x, float z);
 
 private:
 	bool m_vsync_enabled;
@@ -45,37 +43,48 @@ private:
 
 
 private:
-	struct Vertex {				// 定义一个顶点结构体，暂时就一个坐标属性
-		DirectX::XMFLOAT3 pos;
-		unsigned char color[4]; // RGBA 比float节省空间
-	};
-
-private:
 	void DrawTestTriangleErr();
 
-	struct VertexPosColor
-	{
-		DirectX::XMFLOAT3 pos;
-		DirectX::XMFLOAT4 color;
-	};
 public:
-
+	bool ResetMesh(const Geometry::MeshData<VertexPosNormalColor>& meshData);
 	void InitShader_CSO();
-	void InitShader_INC();
-	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath);
+	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath, const D3D11_INPUT_ELEMENT_DESC* _inputLayout, UINT _numelement);
 	void InitTriangleResource();
 	void InitCubeResource();
 	void UpdateScene(float x, float y);
-	struct ConstantBuffer
+	struct VSConstantBuffer
 	{
 		DirectX::XMMATRIX world;
 		DirectX::XMMATRIX view;
 		DirectX::XMMATRIX proj;
+		DirectX::XMMATRIX worldInvTranspose;
 	};
-	ConstantBuffer m_CBuffer;
-	ComPtr<ID3D11Buffer> m_pConstantBuffer;
+	struct PSConstantBuffer
+	{
+		DirectionalLight dirLight;
+		PointLight pointLight;
+		SpotLight spotLight;
+		Material material;
+		DirectX::XMFLOAT4 eyePos;
+	};
 
+	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 索引缓冲区
+	ComPtr<ID3D11Buffer> m_pVertexBuffer;			// 顶点缓冲区
+	ComPtr<ID3D11Buffer> m_pIndexBuffer;			// 索引缓冲区
+	ComPtr<ID3D11Buffer> m_pConstantBuffers[2];	    // 常量缓冲区
 
+	DirectionalLight m_DirLight;					// 默认环境光
+	PointLight m_PointLight;						// 默认点光
+	SpotLight m_SpotLight;						    // 默认汇聚光
+	VSConstantBuffer m_VSConstantBuffer;			// 用于修改用于VS的GPU常量缓冲区的变量
+	PSConstantBuffer m_PSConstantBuffer;			// 用于修改用于PS的GPU常量缓冲区的变量
+	ComPtr<ID3D11InputLayout> m_pVertexLayout;	    // 顶点输入布局
+
+	ComPtr<ID3D11RasterizerState> m_pRSWireframe;	// 光栅化状态: 线框模式
+	bool m_IsWireframeMode;							// 当前是否为线框模式
+	UINT m_IndexCount;							    // 绘制物体的索引数组大小
+
+	void InitLightResource();
 	void DrawScene();
 	void UseComputeShader();
 
@@ -83,8 +92,6 @@ public:
 	ComPtr<ID3D11VertexShader> pVertexShader;
 	ComPtr<ID3D11PixelShader> pPixelShader;
 
-	bool InitComputeShaderResource();
-	void Compute();
 	ComPtr<ID3D11ShaderResourceView> m_pTextureInputA;
 	ComPtr<ID3D11ShaderResourceView> m_pTextureInputB;
 

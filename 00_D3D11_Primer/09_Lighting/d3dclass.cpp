@@ -4,11 +4,10 @@
 #include <direct.h>
 #include "misc/DXTrace.h"
 #include <math.h>
-#include "shader/Triangle_VS.inc"
-#include "shader/Triangle_PS.inc"
 #include "misc/DirectXTex/DDSTextureLoader11.h"
 #include "misc/DirectXTex/ScreenGrab.h"
 #include "ComputeShader.h"
+
 
 D3dClass::D3dClass():m_vsync_enabled(false)
 {
@@ -21,621 +20,6 @@ D3dClass::D3dClass():m_vsync_enabled(false)
 D3dClass::~D3dClass()
 {
 
-}
-
-void D3dClass::DrawTestCube(float angle, float x, float z)
-{
-	HRESULT hr;
-
-	// create vertex buffer (1 2d triangle at center of screen)
-	Vertex vertices[] =			// 顶点数组
-	{
-		{DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f),{255, 0, 0,  1} },
-		{DirectX::XMFLOAT3(1.0f, -1.0f, -1.0f),{0, 255, 0,  1} },
-		{DirectX::XMFLOAT3(-1.0f,  1.0f, -1.0f),{0, 0, 255,  1} },
-		{DirectX::XMFLOAT3(1.0f,  1.0f, -1.0f),{255, 255, 0,  1} },
-		{DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f),{255, 0, 255,  1} },
-		{DirectX::XMFLOAT3(1.0f, -1.0f,  1.0f),{0, 255, 255,  1} },
-		{DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f),{0, 0, 0,  1} },
-		{DirectX::XMFLOAT3(1.0f,  1.0f,  1.0f),{255, 255, 255,  1} },
-	};
-	ComPtr<ID3D11Buffer> pVertexBuffer;
-	D3D11_BUFFER_DESC bd = {};
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0u;
-	bd.MiscFlags = 0u;
-	bd.ByteWidth = sizeof(vertices);
-	bd.StructureByteStride = sizeof(Vertex);
-	D3D11_SUBRESOURCE_DATA sd = {};
-	sd.pSysMem = vertices;
-	HR(pDevice->CreateBuffer(&bd, &sd, &pVertexBuffer));
-
-	// Bind vertex buffer to pipeline
-	const UINT stride = sizeof(Vertex);
-	const UINT offset = 0u;
-	pContext->IASetVertexBuffers(0u, 1u, pVertexBuffer.GetAddressOf(), &stride, &offset);
-
-
-	// create index buffer
-	const unsigned short indices[] =
-	{
-		0,2,1, 2,3,1,
-		1,3,5, 3,7,5,
-		2,6,3, 3,6,7,
-		4,5,7, 4,7,6,
-		0,4,2, 2,4,6,
-		0,1,4, 1,5,4
-	};
-	ComPtr<ID3D11Buffer> pIndexBuffer;
-	D3D11_BUFFER_DESC ibd = {};
-	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	ibd.Usage = D3D11_USAGE_DEFAULT;
-	ibd.CPUAccessFlags = 0u;
-	ibd.MiscFlags = 0u;
-	ibd.ByteWidth = sizeof(indices);
-	ibd.StructureByteStride = sizeof(unsigned short);
-	D3D11_SUBRESOURCE_DATA isd = {};
-	isd.pSysMem = indices;
-	HR(pDevice->CreateBuffer(&ibd, &isd, &pIndexBuffer));
-
-	// bind index buffer
-	pContext->IASetIndexBuffer(pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0u);
-
-
-	// create constant buffer for transformation matrix
-	struct ConstantBuffer
-	{
-		DirectX::XMMATRIX transform;
-	};
-	const ConstantBuffer cb =
-	{
-		{
-			DirectX::XMMatrixTranspose(
-				DirectX::XMMatrixRotationZ(angle) *
-				DirectX::XMMatrixRotationX(angle) *
-				DirectX::XMMatrixTranslation(x,0.0f,z + 4.0f) *
-				DirectX::XMMatrixPerspectiveLH(1.0f,3.0f / 4.0f,0.5f,10.0f)
-			)
-		}
-	};
-	ComPtr<ID3D11Buffer> pConstantBuffer;
-	D3D11_BUFFER_DESC cbd;
-	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cbd.Usage = D3D11_USAGE_DYNAMIC;
-	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cbd.MiscFlags = 0u;
-	cbd.ByteWidth = sizeof(cb);
-	cbd.StructureByteStride = 0u;
-	D3D11_SUBRESOURCE_DATA csd = {};
-	csd.pSysMem = &cb;
-	HR(pDevice->CreateBuffer(&cbd, &csd, &pConstantBuffer));
-
-	// bind constant buffer to vertex shader
-	pContext->VSSetConstantBuffers(0u, 1u, pConstantBuffer.GetAddressOf());
-
-	// create pixel shader
-	ComPtr<ID3D11PixelShader> pPixelShader;
-	ComPtr<ID3DBlob> pBlob;
-	HR(D3DReadFileToBlob(L"../bin/ps.cso", &pBlob));
-	HR(pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pPixelShader));
-
-	// bind pixel shader
-	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0u);
-
-
-	// create vertex shader
-	ComPtr<ID3D11VertexShader> pVertexShader;
-	HR(D3DReadFileToBlob(L"../bin/vs.cso", &pBlob));
-	HR(pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pVertexShader));
-
-	// bind vertex shader
-	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0u);
-
-
-	// input (vertex) layout (2d position only)
-	ComPtr<ID3D11InputLayout> pInputLayout;
-	const D3D11_INPUT_ELEMENT_DESC ied[] =
-	{
-		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},//UNORM归一化
-	};
-	HR(pDevice->CreateInputLayout(
-		ied, (UINT)std::size(ied),
-		pBlob->GetBufferPointer(),
-		pBlob->GetBufferSize(),
-		&pInputLayout
-	));
-
-	// bind vertex layout
-	pContext->IASetInputLayout(pInputLayout.Get());
-
-
-	// Set primitive topology to triangle list (groups of 3 vertices)
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
-	// configure viewport
-	D3D11_VIEWPORT vp;
-	vp.Width = 800;
-	vp.Height = 600;
-	vp.MinDepth = 0;
-	vp.MaxDepth = 1;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	pContext->RSSetViewports(1u, &vp);
-
-
-	THROW_D3D_EXCEPTION(pContext->DrawIndexed((UINT)std::size(indices), 0u, 0u));
-}
-
-
-
-int D3dClass::DrawCube(float angle, float x, float z)
-{
-	//DrawTestTriangleErr();
-
-	HRESULT hr = S_FALSE;
-	Vertex vertices[] =			// 顶点数组
-	{
-		{DirectX::XMFLOAT3(-1.0f, -1.0f, -1.0f),{255, 0, 0,  1} },
-		{DirectX::XMFLOAT3( 1.0f, -1.0f, -1.0f),{0, 255, 0,  1} },
-		{DirectX::XMFLOAT3(-1.0f,  1.0f, -1.0f),{0, 0, 255,  1} },
-		{DirectX::XMFLOAT3( 1.0f,  1.0f, -1.0f),{255, 255, 0,  1} },
-		{DirectX::XMFLOAT3(-1.0f, -1.0f,  1.0f),{255, 0, 255,  1} },
-		{DirectX::XMFLOAT3( 1.0f, -1.0f,  1.0f),{0, 255, 255,  1} },
-		{DirectX::XMFLOAT3(-1.0f,  1.0f,  1.0f),{0, 0, 0,  1} },
-		{DirectX::XMFLOAT3( 1.0f,  1.0f,  1.0f),{255, 255, 255,  1} },
-	};
-
-	const int vertexesNum = sizeof(vertices) / sizeof(Vertex);
-
-	//IBO
-	const unsigned short indices[] =
-	{
-		0,2,1, 2,3,1,
-		1,3,5, 3,7,5,
-		2,6,3, 3,6,7,
-		4,5,7, 4,7,6,
-		0,4,2, 2,4,6,
-		0,1,4, 1,5,4
-	};
-	const int indexCount = sizeof(indices) / sizeof(unsigned short);
-
-	/************************************************************************/
-	/* 顶点缓冲区  */
-	/************************************************************************/
-
-	//1.顶点缓冲描述
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
-	vertexBufferDesc.ByteWidth = sizeof(vertices);	// 大小
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// Bind
-
-	//2.顶点数据
-	D3D11_SUBRESOURCE_DATA vsData;
-	ZeroMemory(&vsData, sizeof(D3D11_SUBRESOURCE_DATA));
-	vsData.pSysMem = vertices;
-
-	//3.创建顶点缓冲区
-	ComPtr<ID3D11Buffer> pVBO;
-	HR(pDevice->CreateBuffer(&vertexBufferDesc, &vsData, pVBO.GetAddressOf()));
-
-	//4.为顶点缓冲区设置 CPU 描述符handle，分配到管道
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	pContext->IASetVertexBuffers(0, 1, pVBO.GetAddressOf(), &stride, &offset);
-
-	/************************************************************************/
-	/* 索引缓冲区  */
-	/************************************************************************/
-	D3D11_BUFFER_DESC indexBufferDesc;
-	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
-	indexBufferDesc.ByteWidth = sizeof(indices);	// 大小
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;	// Bind
-	indexBufferDesc.StructureByteStride = sizeof(unsigned short);
-
-	//顶点数据
-	D3D11_SUBRESOURCE_DATA indexData;
-	ZeroMemory(&indexData, sizeof(D3D11_SUBRESOURCE_DATA));
-	indexData.pSysMem = indices;
-
-	ComPtr<ID3D11Buffer> pIBO;
-	HR(pDevice->CreateBuffer(&indexBufferDesc, &indexData, pIBO.GetAddressOf()));
-
-	// bind index buffer
-	pContext->IASetIndexBuffer(pIBO.Get(), DXGI_FORMAT_R16_UINT, 0u);
-	
-
-	/************************************************************************/
-	/* 常量缓冲区  */
-	/************************************************************************/
-	struct ConstantBuffer
-	{
-		DirectX::XMMATRIX transform;//无法直接访问元素来初始化和改变元素，类似于黑匣子
-	};
-
-
-	float ratio_hw = (float)m_screenHeight / (float)m_screenWidth;
-
-	//float x = 0, z = 0;
-
-	const ConstantBuffer cb =
-	{
-		{
-			DirectX::XMMatrixTranspose(
-				DirectX::XMMatrixRotationZ(angle)*
-				DirectX::XMMatrixRotationX(angle)*
-				DirectX::XMMatrixTranslation(x,0.0f,z + 4.0f)*
-				DirectX::XMMatrixPerspectiveLH(1.0f,ratio_hw,0.5f,10.0f) )
-		}
-	};
-	ComPtr<ID3D11Buffer> pConstantBuffer;
-	D3D11_BUFFER_DESC cbd;
-	ZeroMemory(&cbd, sizeof(cbd));
-	cbd.Usage = D3D11_USAGE_DYNAMIC; //每帧都要更新，需要动态缓冲
-	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cbd.ByteWidth = sizeof(cb);	// 大小
-	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;	// Bind
-	cbd.MiscFlags = 0;
-	cbd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &cb;
-	HR(pDevice->CreateBuffer(&cbd, &csd, pConstantBuffer.GetAddressOf()));
-
-	//绑定
-	pContext->VSSetConstantBuffers(0, 1, pConstantBuffer.GetAddressOf());
-
-	//不需要进行描述， 即不需要绑定 ID3D11InputLayout
-	//create constant buffer end----------------------
-
-
-	//5.创建 vertex shader
-	ComPtr<ID3D11VertexShader> pVertexShader;
-	ComPtr<ID3DBlob> pBlob;//存储shader中的内容
-	HR(D3DReadFileToBlob(L"../bin/vs.cso", pBlob.GetAddressOf()));
-
-	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(),
-		pBlob->GetBufferSize(), nullptr, pVertexShader.GetAddressOf());
-	HR(hr);
-
-	//6.绑定 vertex shader 到渲染管线
-	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
-
-	//7.告诉CPU如何从shader中读取数据
-	ComPtr<ID3D11InputLayout> pInputLayout;
-	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
-	const D3D11_INPUT_ELEMENT_DESC layout[]{
-		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},//UNORM归一化
-	};
-	const UINT numElements = ARRAYSIZE(layout);
-	hr = pDevice->CreateInputLayout(layout, numElements,
-		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), pInputLayout.GetAddressOf());
-	HR(hr);
-
-	//8.绑定 layout
-	pContext->IASetInputLayout(pInputLayout.Get());
-
-	//end *************************************************/
-
-
-
-
-	//start ***********************************************/
-	//9.创建 pixel shader
-	ComPtr<ID3D11PixelShader> pPixelShader;
-	ComPtr<ID3DBlob> pBlob_PS;//存储shader中的内容
-	hr = D3DReadFileToBlob(L"../bin/ps.cso", pBlob_PS.GetAddressOf());
-	HR(hr);
-	hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
-		pBlob_PS->GetBufferSize(), nullptr, pPixelShader.GetAddressOf());
-	HR(hr);
-
-	//10.绑定 pixel shader 到渲染管线
-	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
-	//end *************************************************/
-
-	//11.指定输出目标（渲染对象）
-	pContext->OMSetRenderTargets(1, pRenderTargetView.GetAddressOf(), pDepthStencilView.Get());//在初始化时，已经指定了输出目标，所以不需要指定
-
-	//三角形list
-	pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);//画三角形
-	//pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_LINELIST);//画线
-
-
-	//12.设置视口变换
-	D3D11_VIEWPORT vp;// 视口
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	vp.Width = static_cast<float>(m_screenWidth);
-	vp.Height = static_cast<float>(m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	pContext->RSSetViewports(1, &vp);
-
-	THROW_D3D_EXCEPTION(pContext->DrawIndexed((UINT)indexCount, 0u, 0u));//三个顶点，从0号顶点开始
-	return 0;
-}
-
-int D3dClass::DrawTriangle(float angle)
-{
-	//DrawTestTriangleErr();
-
-	HRESULT hr = S_FALSE;
-	Vertex vertices[] =			// 顶点数组
-	{
-		{DirectX::XMFLOAT3(0.0f, 0.3f, 0.3f),{255, 0, 0,  1} },
-		{DirectX::XMFLOAT3(0.3f, -0.3f, 0.3f),{0, 255, 0, 1} },
-		{DirectX::XMFLOAT3(-0.3f, -0.3f, 0.3f),{0, 0, 255, 1} },
-	};
-
-	const int vertexesNum = sizeof(vertices) / sizeof(Vertex);
-
-	//start ***********************************************/
-	//1.顶点缓冲描述
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
-	vertexBufferDesc.ByteWidth = sizeof(Vertex) * vertexesNum;	// 大小（我们有三个顶点）
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// Bind
-
-	//2.顶点数据
-	D3D11_SUBRESOURCE_DATA vsData;
-	ZeroMemory(&vsData, sizeof(D3D11_SUBRESOURCE_DATA));
-	vsData.pSysMem = vertices;
-
-	//3.创建顶点缓冲区
-	ComPtr<ID3D11Buffer> pVBO;
-	HR( pDevice->CreateBuffer(&vertexBufferDesc, &vsData, pVBO.GetAddressOf()) );
-
-	//4.为顶点缓冲区设置 CPU 描述符handle，分配到管道
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	pContext->IASetVertexBuffers(0, 1, pVBO.GetAddressOf(), &stride, &offset);
-
-	//5.创建 vertex shader
-	ComPtr<ID3D11VertexShader> pVertexShader;
-	ComPtr<ID3DBlob> pBlob;//存储shader中的内容
-	HR( D3DReadFileToBlob(L"../bin/vs.cso", pBlob.GetAddressOf()) );
-
-	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(), 
-		pBlob->GetBufferSize(), nullptr, pVertexShader.GetAddressOf());
-	HR(hr);
-
-	//6.绑定 vertex shader 到渲染管线
-	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
-
-	//7.告诉CPU如何从shader中读取数据
-	ComPtr<ID3D11InputLayout> pInputLayout;
-	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
-	const D3D11_INPUT_ELEMENT_DESC layout[]{
-		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float)*3, D3D11_INPUT_PER_VERTEX_DATA, 0},//UNORM归一化
-	};
-	const UINT numElements = ARRAYSIZE(layout);
-	hr = pDevice->CreateInputLayout(layout, numElements, 
-		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), pInputLayout.GetAddressOf());
-	HR(hr);
-
-	//8.绑定 layout
-	pContext->IASetInputLayout(pInputLayout.Get());
-
-	//end *************************************************/
-
-
-	//create constant buffer start--------------------
-	struct ConstantBuffer
-	{
-		DirectX::XMMATRIX transform;//无法直接访问元素来初始化和改变元素，类似于黑匣子
-	};
-
-
-	float ratio_hw = (float)m_screenHeight / (float)m_screenWidth;
-	
-	const ConstantBuffer cb =
-	{
-		{
-#if 0
-			DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationZ(angle), DirectX::XMMatrixScaling(ratio_hw,1.0f,1.0f))
-#else
-			DirectX::XMMatrixRotationZ(angle)* DirectX::XMMatrixScaling(ratio_hw,1.0f,1.0f) //该库也重载了 *
-#endif
-		}
-	};
-	ComPtr<ID3D11Buffer> pConstantBuffer;
-	D3D11_BUFFER_DESC cbd;
-	ZeroMemory(&cbd, sizeof(cbd));
-	cbd.Usage = D3D11_USAGE_DYNAMIC; //每帧都要更新，需要动态缓冲
-	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cbd.ByteWidth = sizeof(cb);	// 大小
-	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;	// Bind
-	cbd.MiscFlags = 0;
-	cbd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA csd;
-	csd.pSysMem = &cb;
-	HR( pDevice->CreateBuffer(&cbd, &csd, pConstantBuffer.GetAddressOf()) );
-
-	//绑定
-	pContext->VSSetConstantBuffers(0, 1, pConstantBuffer.GetAddressOf());
-
-	//不需要进行描述， 即不需要绑定 ID3D11InputLayout
-	//create constant buffer end----------------------
-
-
-
-	//start ***********************************************/
-	//9.创建 pixel shader
-	ComPtr<ID3D11PixelShader> pPixelShader;
-	ComPtr<ID3DBlob> pBlob_PS;//存储shader中的内容
-	hr = D3DReadFileToBlob(L"../bin/ps.cso", pBlob_PS.GetAddressOf());
-	HR(hr);
-	hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
-		pBlob_PS->GetBufferSize(), nullptr, pPixelShader.GetAddressOf());
-	HR(hr);
-
-	//10.绑定 pixel shader 到渲染管线
-	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
-	//end *************************************************/
-
-	//11.指定输出目标（渲染对象）
-	pContext->OMSetRenderTargets(1, pRenderTargetView.GetAddressOf(), nullptr);
-
-	//三角形list
-	pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);//画三角形
-	//pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_LINELIST);//画线
-
-
-	//12.设置视口变换
-	D3D11_VIEWPORT vp;// 视口
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	vp.Width = static_cast<float>(m_screenWidth);
-	vp.Height = static_cast<float>(m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	pContext->RSSetViewports(1, &vp);
-
-	THROW_D3D_EXCEPTION(pContext->Draw(vertexesNum, 0));//三个顶点，从0号顶点开始
-	return 0;
-}
-
-int D3dClass::DrawRect()
-{
-	HRESULT hr = S_FALSE;
-	Vertex vertices[] =			// 顶点数组
-	{
-		{DirectX::XMFLOAT3(-0.1f, -0.1f, 0.3f),{255, 0, 0, 1}},
-		{DirectX::XMFLOAT3(-0.1f, 0.1f, 0.3f),{0, 255, 0, 1} },
-		{DirectX::XMFLOAT3(0.1f, -0.1f, 0.3f),{0, 0, 255, 1} },
-		{DirectX::XMFLOAT3(0.1f, 0.1f, 0.3f), {255, 0, 0, 1} },
-	};
-
-	//IBO
-	const int indexCount = 6;
-	const unsigned short indices[indexCount] = {0,1,2,
-												1,3,2};
-	//const int indexCount = 3;
-	//unsigned long indices[indexCount] = { 0,1,2 };
-
-
-	//VBO-start ***********************************************/
-	//1.1 顶点缓冲描述
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
-	vertexBufferDesc.ByteWidth = sizeof(vertices);	// 大小（我们有三个顶点）
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// Bind
-
-	//1.2 顶点数据
-	D3D11_SUBRESOURCE_DATA vsData;
-	ZeroMemory(&vsData, sizeof(D3D11_SUBRESOURCE_DATA));
-	vsData.pSysMem = vertices;
-
-	//1.3 创建顶点缓冲区
-	ComPtr<ID3D11Buffer> pVBO;
-	hr = pDevice->CreateBuffer(&vertexBufferDesc, &vsData, pVBO.GetAddressOf());
-	HR(hr);
-
-	//1.4 为顶点缓冲区设置 CPU 描述符handle，分配到管道
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	pContext->IASetVertexBuffers(0, 1, pVBO.GetAddressOf(), &stride, &offset);
-	//VBO-end *************************************************/
-
-	//start ***********************************************/
-	//2.1 索引缓冲描述
-	D3D11_BUFFER_DESC indexBufferDesc;
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(indices);
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = sizeof(unsigned short);
-
-	//2.2 索引数据
-	D3D11_SUBRESOURCE_DATA indexData;
-	indexData.pSysMem = indices;
-	indexData.SysMemPitch = 0;
-	indexData.SysMemSlicePitch = 0;
-
-	//2.3 创建索引缓冲区
-	ComPtr<ID3D11Buffer> pIBO = nullptr;
-	hr = pDevice->CreateBuffer(&indexBufferDesc, &indexData, pIBO.GetAddressOf());
-	HR(hr);
-
-	//2.4 为索引缓冲区设置 CPU 描述符handle，分配到管道
-	pContext->IASetIndexBuffer(pIBO.Get(), DXGI_FORMAT_R16_UINT, 0);
-	//end *************************************************/
-
-	//3.创建 vertex shader
-	ComPtr<ID3D11VertexShader> pVertexShader;
-	ID3DBlob* pBlob;//存储shader中的内容
-	hr = D3DReadFileToBlob(L"../bin/vs.cso", &pBlob);
-	HR(hr);
-	hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(),
-		pBlob->GetBufferSize(), nullptr, pVertexShader.GetAddressOf());
-	HR(hr);
-
-	//4.绑定 vertex shader 到渲染管线
-	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
-
-	//5.告诉CPU如何从shader中读取数据
-	ComPtr<ID3D11InputLayout> pInputLayout;
-	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
-	const D3D11_INPUT_ELEMENT_DESC layout[]{
-		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(float) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
-
-	};
-	const UINT numElements = ARRAYSIZE(layout);
-	hr = pDevice->CreateInputLayout(layout, numElements,
-		pBlob->GetBufferPointer(), pBlob->GetBufferSize(), pInputLayout.GetAddressOf());
-	HR(hr);
-
-	//6.绑定 layout
-	pContext->IASetInputLayout(pInputLayout.Get());
-
-	//end *************************************************/
-
-
-	//start ***********************************************/
-	//7.创建 pixel shader
-	ComPtr<ID3D11PixelShader> pPixelShader;
-	ComPtr<ID3DBlob> pBlob_PS;//存储shader中的内容
-	HR( D3DReadFileToBlob(L"../bin/ps.cso", pBlob_PS.GetAddressOf()));
-
-	hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
-		pBlob_PS->GetBufferSize(), nullptr, pPixelShader.GetAddressOf());
-	HR(hr);
-
-	//8.绑定 pixel shader 到渲染管线
-	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
-	//end *************************************************/
-
-	//9.指定输出目标（渲染对象）
-	pContext->OMSetRenderTargets(1, pRenderTargetView.GetAddressOf(), nullptr);
-
-	//三角形list
-	pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
-	//10.设置视口变换
-	D3D11_VIEWPORT vp;// 视口
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	vp.Width = static_cast<float>(m_screenWidth);
-	vp.Height = static_cast<float>(m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	pContext->RSSetViewports(1, &vp);
-
-	THROW_D3D_EXCEPTION(pContext->DrawIndexed(indexCount, 0, 0));
-	return 0;
 }
 
 int D3dClass::EndFrame()
@@ -900,25 +284,7 @@ void D3dClass::InitShader_CSO()
 }
 
 
-void D3dClass::InitShader_INC()
-{
-	// 创建顶点着色器
-	HR(pDevice->CreateVertexShader(g_Triangle_VS, sizeof(g_Triangle_VS), nullptr, pVertexShader.GetAddressOf()));
-
-	// 创建并绑定顶点布局
-	ComPtr<ID3D11InputLayout> pInputLayout;
-	HR(pDevice->CreateInputLayout(inputLayout, ARRAYSIZE(inputLayout),
-		g_Triangle_VS, sizeof(g_Triangle_VS), pInputLayout.GetAddressOf()));
-
-	pContext->IASetInputLayout(pInputLayout.Get());   // [In]输入布局
-
-	//4.像素着色器
-	//ComPtr<ID3D11PixelShader> pPixelShader;
-	HR(pDevice->CreatePixelShader(g_Triangle_PS,
-		sizeof(g_Triangle_PS), nullptr, pPixelShader.GetAddressOf()));
-}
-
-void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath)
+void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath, const D3D11_INPUT_ELEMENT_DESC* _inputLayout, UINT _numelement)
 {
 	//用来查错的Blob对象
 	ComPtr<ID3DBlob> pErrorMessage;
@@ -948,226 +314,228 @@ void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePat
 
 	//3.设置输入布局(Input Layout)-即定义: 读取编译好的着色器的方法
 	ComPtr<ID3D11InputLayout> pInputLayout;
-	HR(pDevice->CreateInputLayout(inputLayout, ARRAYSIZE(inputLayout),
+	(pDevice->CreateInputLayout(_inputLayout, _numelement,//ARRAYSIZE(_inputLayout),
 		pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), pInputLayout.GetAddressOf()));
 
 	pContext->IASetInputLayout(pInputLayout.Get());   // [In]输入布局
 }
 
-
-void D3dClass::InitTriangleResource()
+bool D3dClass::ResetMesh(const Geometry::MeshData<VertexPosNormalColor>& meshData)
 {
+	// 释放旧资源
+	m_pVertexBuffer.Reset();
+	m_pIndexBuffer.Reset();
 
-	InitShader_CompileInRunTime(L"../shader/Triangle_VS.hlsl", L"../shader/Triangle_PS.hlsl");
-
-	using namespace DirectX;
-	VertexPosColor vertices[] = {
-	{ XMFLOAT3(0.0f, 0.5f,  0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(0.5f, -0.5f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(-0.5f, -0.5f,0.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }
-	};
-
-	/************************************************************************/
-	/* 1.顶点缓冲区                                                         */
-	/************************************************************************/
-	D3D11_BUFFER_DESC vbd = {};
+	// 设置顶点缓冲区描述
+	D3D11_BUFFER_DESC vbd;
+	ZeroMemory(&vbd, sizeof(vbd));
 	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof vertices;
+	vbd.ByteWidth = (UINT)meshData.vertexVec.size() * sizeof(VertexPosNormalColor);
 	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vbd.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA InitData = {};
-	InitData.pSysMem = vertices;
-
-	ComPtr<ID3D11Buffer> m_pVertexBuffer;
+	// 新建顶点缓冲区
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = meshData.vertexVec.data();
 	HR(pDevice->CreateBuffer(&vbd, &InitData, m_pVertexBuffer.GetAddressOf()));
 
-	UINT stride = sizeof(VertexPosColor);    // 跨越字节数
-	UINT offset = 0;                        // 起始偏移量
+	// 输入装配阶段的顶点缓冲区设置
+	UINT stride = sizeof(VertexPosNormalColor);	// 跨越字节数
+	UINT offset = 0;							// 起始偏移量
+
 	pContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &stride, &offset);
 
 
-	/************************************************************************/
-	/* 2.索引缓冲区                                                         */
-	/************************************************************************/
-	const unsigned short indices[3] = {0,1,2};
-
-	D3D11_BUFFER_DESC ibd = {};
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(indices);
-	vbd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-	vbd.MiscFlags = 0;
-
-	InitData = {};
-	InitData.pSysMem = indices;
-	ComPtr<ID3D11Buffer> m_pIndexBuffer;
-	HR(pDevice->CreateBuffer(&vbd, &InitData, m_pIndexBuffer.GetAddressOf()));
-
+	// 设置索引缓冲区描述
+	m_IndexCount = (UINT)meshData.indexVec.size();
+	D3D11_BUFFER_DESC ibd;
+	ZeroMemory(&ibd, sizeof(ibd));
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+	ibd.ByteWidth = m_IndexCount * sizeof(DWORD);
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.CPUAccessFlags = 0;
+	// 新建索引缓冲区
+	InitData.pSysMem = meshData.indexVec.data();
+	HR(pDevice->CreateBuffer(&ibd, &InitData, m_pIndexBuffer.GetAddressOf()));
 	// 输入装配阶段的索引缓冲区设置
-	pContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	pContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 
-	/************************************************************************/
-	/* 3.Draw Set                                                           */
-	/************************************************************************/
-	//设置图元信息
-	pContext->IASetPrimitiveTopology(
-		D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);     // [In]图元类型
-
-	//设置着色器
-	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
-	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
-
-	return;
+	return true;
 }
 
-void D3dClass::InitCubeResource()
-{
-	InitShader_CompileInRunTime(L"../shader/Cube_VS.hlsl", L"../shader/Cube_PS.hlsl");
 
-	using namespace DirectX;
+
+void D3dClass::InitLightResource()
+{
+	//InitShader_CompileInRunTime(L"../shader/Light_VS.hlsl", L"../shader/Light_PS.hlsl", 
+	//	VertexPosNormalColor::inputLayout, ARRAYSIZE(VertexPosNormalColor::inputLayout));
 
 	// ******************
-	// 设置立方体顶点
-	//    5________ 6
-	//    /|      /|
-	//   /_|_____/ |
-	//  1|4|_ _ 2|_|7
-	//   | /     | /
-	//   |/______|/
-	//  0       3
-	VertexPosColor vertices[] =
-	{
-	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-	{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-	{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) }
-	};
-
-	// 索引数组
-	const unsigned short indices[] = {
-		// 正面
-		0, 1, 2,
-		2, 3, 0,
-		// 左面
-		4, 5, 1,
-		1, 0, 4,
-		// 顶面
-		1, 5, 6,
-		6, 2, 1,
-		// 背面
-		7, 6, 5,
-		5, 4, 7,
-		// 右面
-		3, 2, 6,
-		6, 7, 3,
-		// 底面
-		4, 0, 3,
-		3, 7, 4
-	};
-
-	/************************************************************************/
-	/* 1.顶点缓冲区                                                         */
-	/************************************************************************/
-	D3D11_BUFFER_DESC vbd = {};
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof vertices;
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA InitData = {};
-	InitData.pSysMem = vertices;
-
-	ComPtr<ID3D11Buffer> m_pVertexBuffer;
-	HR(pDevice->CreateBuffer(&vbd, &InitData, m_pVertexBuffer.GetAddressOf()));
-
-	UINT stride = sizeof(VertexPosColor);    // 跨越字节数
-	UINT offset = 0;                        // 起始偏移量
-	pContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &stride, &offset);
+	// 初始化网格模型
+	//
+	auto meshData = Geometry::CreateBox<VertexPosNormalColor>();
+	ResetMesh(meshData);
 
 
-	/************************************************************************/
-	/* 2.索引缓冲区                                                         */
-	/************************************************************************/
-	D3D11_BUFFER_DESC ibd = {};
-	vbd.Usage = D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth = sizeof(indices);
-	vbd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	vbd.CPUAccessFlags = 0;
-	vbd.MiscFlags = 0;
-
-	InitData = {};
-	InitData.pSysMem = indices;
-	ComPtr<ID3D11Buffer> m_pIndexBuffer;
-	HR(pDevice->CreateBuffer(&vbd, &InitData, m_pIndexBuffer.GetAddressOf()));
-
-	// 输入装配阶段的索引缓冲区设置
-	pContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-
-	/************************************************************************/
-	/* 3.常量缓冲区                                                         */
-	/************************************************************************/
-
+	// ******************
+	// 设置常量缓冲区描述
+	//
 	D3D11_BUFFER_DESC cbd;
 	ZeroMemory(&cbd, sizeof(cbd));
 	cbd.Usage = D3D11_USAGE_DYNAMIC;
-	cbd.ByteWidth = sizeof(ConstantBuffer);
+	cbd.ByteWidth = sizeof(VSConstantBuffer);
 	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	// 新建用于VS和PS的常量缓冲区
+	HR(pDevice->CreateBuffer(&cbd, nullptr, m_pConstantBuffers[0].GetAddressOf()));
+	cbd.ByteWidth = sizeof(PSConstantBuffer);
+	HR(pDevice->CreateBuffer(&cbd, nullptr, m_pConstantBuffers[1].GetAddressOf()));
 
-	// 新建常量缓冲区，不使用初始数据
-	HR(pDevice->CreateBuffer(&cbd, nullptr, m_pConstantBuffer.GetAddressOf()));
-
-	m_CBuffer.world = XMMatrixIdentity();    // 单位矩阵的转置是它本身
-	m_CBuffer.view = XMMatrixTranspose(XMMatrixLookAtLH(
-		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),// 输入摄影机坐标
-		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),// 输入摄影机焦点坐标
-		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) // 输入摄影机上朝向坐标
+	// ******************
+	// 初始化默认光照
+	// 方向光
+	m_DirLight.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	m_DirLight.diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+	m_DirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	m_DirLight.direction = XMFLOAT3(-0.577f, -0.577f, 0.577f);
+	// 点光
+	m_PointLight.position = XMFLOAT3(0.0f, 0.0f, -10.0f);
+	m_PointLight.ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	m_PointLight.diffuse = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
+	m_PointLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	m_PointLight.att = XMFLOAT3(0.0f, 0.1f, 0.0f);
+	m_PointLight.range = 25.0f;
+	// 聚光灯
+	m_SpotLight.position = XMFLOAT3(0.0f, 0.0f, -5.0f);
+	m_SpotLight.direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	m_SpotLight.ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	m_SpotLight.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_SpotLight.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_SpotLight.att = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	m_SpotLight.spot = 12.0f;
+	m_SpotLight.range = 10000.0f;
+	// 初始化用于VS的常量缓冲区的值
+	m_VSConstantBuffer.world = XMMatrixIdentity();
+	m_VSConstantBuffer.view = XMMatrixTranspose(XMMatrixLookAtLH(
+		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
+		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
 	));
-	float ratio_hw = (float)m_screenWidth  / (float)m_screenHeight;
-	m_CBuffer.proj = XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, ratio_hw, 1.0f, 1000.0f));
+	m_VSConstantBuffer.proj = XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, AspectRatio(), 1.0f, 1000.0f));
+	m_VSConstantBuffer.worldInvTranspose = XMMatrixIdentity();
 
+	// 初始化用于PS的常量缓冲区的值
+	m_PSConstantBuffer.material.ambient = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	m_PSConstantBuffer.material.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_PSConstantBuffer.material.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 5.0f);
+	// 使用默认平行光
+	m_PSConstantBuffer.dirLight = m_DirLight;
+	// 注意不要忘记设置此处的观察位置，否则高亮部分会有问题
+	m_PSConstantBuffer.eyePos = XMFLOAT4(0.0f, 0.0f, -5.0f, 0.0f);
 
+	// 更新PS常量缓冲区资源
 	D3D11_MAPPED_SUBRESOURCE mappedData;
-	HR(pContext->Map(m_pConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
-	memcpy_s(mappedData.pData, sizeof(m_CBuffer), &m_CBuffer, sizeof(m_CBuffer));
-	pContext->Unmap(m_pConstantBuffer.Get(), 0);
+	HR(pContext->Map(m_pConstantBuffers[1].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+	memcpy_s(mappedData.pData, sizeof(PSConstantBuffer), &m_PSConstantBuffer, sizeof(PSConstantBuffer));
+	pContext->Unmap(m_pConstantBuffers[1].Get(), 0);
 
-	pContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	// ******************
+	// 初始化光栅化状态
+	//
+	D3D11_RASTERIZER_DESC rasterizerDesc;
+	ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
+	rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+	rasterizerDesc.CullMode = D3D11_CULL_NONE;
+	rasterizerDesc.FrontCounterClockwise = false;
+	rasterizerDesc.DepthClipEnable = true;
+	HR(pDevice->CreateRasterizerState(&rasterizerDesc, m_pRSWireframe.GetAddressOf()));
 
+	// ******************
+	// 给渲染管线各个阶段绑定好所需资源
+	//
 
-	/************************************************************************/
-	/* 3.Draw Set                                                           */
-	/************************************************************************/
-	//设置图元信息
-	pContext->IASetPrimitiveTopology(
-		D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);     // [In]图元类型
-
-	//设置着色器
+	// 设置图元类型，设定输入布局
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pContext->IASetInputLayout(m_pVertexLayout.Get());
+	// 将着色器绑定到渲染管线
 	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
+	// VS常量缓冲区对应HLSL寄存于b0的常量缓冲区
+	pContext->VSSetConstantBuffers(0, 1, m_pConstantBuffers[0].GetAddressOf());
+	// PS常量缓冲区对应HLSL寄存于b1的常量缓冲区
+	pContext->PSSetConstantBuffers(1, 1, m_pConstantBuffers[1].GetAddressOf());
 	pContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
 }
 
+
 void D3dClass::UpdateScene(float x, float y)
 {
-
+	using namespace DirectX;
 	static float phi = 0.0f, theta = 0.0f;
 	phi += 0.0001f, theta += 0.00015f;
-	//m_CBuffer.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationX(phi) * DirectX::XMMatrixRotationY(theta));
+	XMMATRIX W = XMMatrixRotationX(phi) * XMMatrixRotationY(theta);
+	m_VSConstantBuffer.world = XMMatrixTranspose(W);
+	m_VSConstantBuffer.worldInvTranspose = XMMatrixTranspose(InverseTranspose(W));
 
-	m_CBuffer.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationY(x) * DirectX::XMMatrixRotationX(y));
+	// 键盘切换灯光类型
+	Keyboard::State state = m_pKeyboard->GetState();
+	m_KeyboardTracker.Update(state);
+	if (m_KeyboardTracker.IsKeyPressed(Keyboard::D1))
+	{
+		m_PSConstantBuffer.dirLight = m_DirLight;
+		m_PSConstantBuffer.pointLight = PointLight();
+		m_PSConstantBuffer.spotLight = SpotLight();
+	}
+	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::D2))
+	{
+		m_PSConstantBuffer.dirLight = DirectionalLight();
+		m_PSConstantBuffer.pointLight = m_PointLight;
+		m_PSConstantBuffer.spotLight = SpotLight();
+	}
+	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::D3))
+	{
+		m_PSConstantBuffer.dirLight = DirectionalLight();
+		m_PSConstantBuffer.pointLight = PointLight();
+		m_PSConstantBuffer.spotLight = m_SpotLight;
+	}
+
+	// 键盘切换模型类型
+	if (m_KeyboardTracker.IsKeyPressed(Keyboard::Q))
+	{
+		auto meshData = Geometry::CreateBox<VertexPosNormalColor>();
+		ResetMesh(meshData);
+	}
+	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::W))
+	{
+		auto meshData = Geometry::CreateSphere<VertexPosNormalColor>();
+		ResetMesh(meshData);
+	}
+	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::E))
+	{
+		auto meshData = Geometry::CreateCylinder<VertexPosNormalColor>();
+		ResetMesh(meshData);
+	}
+	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::R))
+	{
+		auto meshData = Geometry::CreateCone<VertexPosNormalColor>();
+		ResetMesh(meshData);
+	}
+	// 键盘切换光栅化状态
+	else if (m_KeyboardTracker.IsKeyPressed(Keyboard::S))
+	{
+		m_IsWireframeMode = !m_IsWireframeMode;
+		m_pd3dImmediateContext->RSSetState(m_IsWireframeMode ? m_pRSWireframe.Get() : nullptr);
+	}
 
 	// 更新常量缓冲区，让立方体转起来
 	D3D11_MAPPED_SUBRESOURCE mappedData;
-	HR(pContext->Map(m_pConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
-	memcpy_s(mappedData.pData, sizeof(m_CBuffer), &m_CBuffer, sizeof(m_CBuffer));
-	pContext->Unmap(m_pConstantBuffer.Get(), 0);
+	HR(m_pd3dImmediateContext->Map(m_pConstantBuffers[0].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+	memcpy_s(mappedData.pData, sizeof(VSConstantBuffer), &m_VSConstantBuffer, sizeof(VSConstantBuffer));
+	m_pd3dImmediateContext->Unmap(m_pConstantBuffers[0].Get(), 0);
+
+	HR(m_pd3dImmediateContext->Map(m_pConstantBuffers[1].Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+	memcpy_s(mappedData.pData, sizeof(PSConstantBuffer), &m_PSConstantBuffer, sizeof(PSConstantBuffer));
+	m_pd3dImmediateContext->Unmap(m_pConstantBuffers[1].Get(), 0);
 }
 
 void D3dClass::DrawScene()
