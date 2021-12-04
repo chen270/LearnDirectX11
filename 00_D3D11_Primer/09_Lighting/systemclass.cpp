@@ -16,10 +16,8 @@ SystemClass::SystemClass()
 	d3d = std::make_unique<D3dClass>();
 
 	m_mouse = std::make_unique<DirectX::Mouse>();
-	m_MouseTracker = std::make_unique<DirectX::Mouse::ButtonStateTracker>();
 
 	m_keyboard = std::make_unique<DirectX::Keyboard>();
-	m_KeyboardTracker = std::make_unique<DirectX::Keyboard::KeyboardStateTracker>();
 }
 
 SystemClass::~SystemClass()
@@ -42,13 +40,16 @@ int SystemClass::Init()
 	//m_mouse->SetWindow(this->m_hwnd);
 	//m_mouse->SetMode(DirectX::Mouse::MODE_ABSOLUTE);
 
+#if 1 //自写
+	d3d->InitShader_CompileInRunTime(L"../shader/Light_VS.hlsl", L"../shader/Light_PS.hlsl");
+#else //参考
+	auto r = d3d->InitEffect();
+#endif // 1
+
 	//3.Init Resource
 	//d3d->InitResource();
 	//d3d->InitCubeResource();
 	d3d->InitLightResource();
-	//d3d->InitTriangleResource();
-	//d3d->InitComputeShaderResource();
-	//d3d->UseComputeShader();
 
 	return 0;
 }
@@ -73,49 +74,12 @@ int SystemClass::Run()
 		else
 		{
 			//DirectX11
-#if 1
 			//当前画出的图形随着窗口的大小而改变
-			//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
-			d3d->ClearBuffer(0.5f, 0.5f, 0.5f);
-			d3d->UpdateScene(m_time.Peek());
-			//d3d->DrawTriangle(m_time.Peek());
-			//d3d->DrawCube(m_time.Peek(), 0, 0);
-			//d3d->DrawCube(-m_time.Peek(),-1.0,0.0);
-			//d3d->DrawRect();
-			d3d->EndFrame();
-#else
-			// 获取鼠标状态
-			DirectX::Mouse::State mouseState = m_mouse->GetState();
-			DirectX::Mouse::State lastMouseState = m_MouseTracker->GetLastState();
-			
-			// 更新鼠标按钮状态跟踪器，仅当鼠标按住的情况下才进行移动
-			static float cubePhi = 0.0f, cubeTheta = 0.0f;
-			m_MouseTracker->Update(mouseState);
-			if (mouseState.leftButton == true && m_MouseTracker->leftButton == m_MouseTracker->HELD)
-			{
-				cubeTheta -= (mouseState.x - lastMouseState.x) * 0.01f;
-				cubePhi -= (mouseState.y - lastMouseState.y) * 0.01f;
-			}
-
-			//键盘
-			float dt = m_time.Peek() * 0.0001f;
-			DirectX::Keyboard::State keyState = m_keyboard->GetState();
-			if (keyState.IsKeyDown(DirectX::Keyboard::W))
-				cubePhi += dt * 2;
-			if (keyState.IsKeyDown(DirectX::Keyboard::S))
-				cubePhi -= dt * 2;
-			if (keyState.IsKeyDown(DirectX::Keyboard::A))
-				cubeTheta += dt * 2;
-			if (keyState.IsKeyDown(DirectX::Keyboard::D))
-				cubeTheta -= dt * 2;
-
-
-			d3d->UpdateScene(cubeTheta, cubePhi);
+			d3d->ClearBuffer(0.0f, 0.0f, 0.0f);
+			d3d->UpdateScene(m_time.Peek(), m_keyboard->GetState());
+			//d3d->ClearBuffer(0.5f, 0.5f, 0.5f);
 			d3d->DrawScene();
-			//d3d->Compute();
-			//d3d->UseComputeShader();
-#endif
-
+			d3d->EndFrame();
 		}
 	}
 
@@ -195,10 +159,24 @@ int SystemClass::ShutdownWindow()
 }
 
 
-LRESULT CALLBACK SystemClass::WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK SystemClass::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	switch (message)
+	switch (msg)
 	{
+	// Check if the window is being destroyed.
+	case WM_DESTROY:
+	{
+		PostQuitMessage(0);
+		return 0;
+	}
+
+	// Check if the window is being closed.
+	case WM_CLOSE:
+	{
+		PostQuitMessage(0);
+		return 0;
+	}
+
 	// 监测这些键盘/鼠标事件
 	case WM_INPUT:
 
@@ -215,35 +193,23 @@ LRESULT CALLBACK SystemClass::WndProc(HWND hwnd, UINT message, WPARAM wparam, LP
 	case WM_MOUSEWHEEL:
 	case WM_MOUSEHOVER:
 	case WM_MOUSEMOVE:
-		m_mouse->ProcessMessage(message, wparam, lparam);
+		m_mouse->ProcessMessage(msg, wParam, lParam);
 		return 0;
+
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYUP:
-		m_keyboard->ProcessMessage(message, wparam, lparam);
+		m_keyboard->ProcessMessage(msg, wParam, lParam);
 		return 0;
+
 	case WM_ACTIVATEAPP:
-		m_mouse->ProcessMessage(message, wparam, lparam);
-		m_keyboard->ProcessMessage(message, wparam, lparam);
+		m_mouse->ProcessMessage(msg, wParam, lParam);
+		m_keyboard->ProcessMessage(msg, wParam, lParam);
 		return 0;
-
-	// Check if the window is being destroyed.
-	case WM_DESTROY:
-	{
-		PostQuitMessage(0);
-		return 0;
-	}
-
-	// Check if the window is being closed.
-	case WM_CLOSE:
-	{
-		PostQuitMessage(0);
-		return 0;
-	}
 
 	// All other messages pass to the message handler in the system class.
 	default:
-		return DefWindowProc(hwnd, message, wparam, lparam);
+		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
 }

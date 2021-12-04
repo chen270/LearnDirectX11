@@ -7,20 +7,7 @@
 #include "misc/DirectXTex/DDSTextureLoader11.h"
 #include "misc/DirectXTex/ScreenGrab.h"
 #include "ComputeShader.h"
-
-
-
-inline DirectX::XMMATRIX XM_CALLCONV InverseTranspose(DirectX::FXMMATRIX M)
-{
-	using namespace DirectX;
-
-	// 世界矩阵的逆的转置仅针对法向量，我们也不需要世界矩阵的平移分量
-	// 而且不去掉的话，后续再乘上观察矩阵之类的就会产生错误的变换结果
-	XMMATRIX A = M;
-	A.r[3] = g_XMIdentityR3;
-
-	return XMMatrixTranspose(XMMatrixInverse(nullptr, A));
-}
+#include "d3dUtil.h"
 
 D3dClass::D3dClass():m_vsync_enabled(false)
 {
@@ -28,7 +15,7 @@ D3dClass::D3dClass():m_vsync_enabled(false)
 	_getcwd(path, 1024);
 	printf("cwd path:%s\n", path);
 
-	m_pKeyboard = std::make_unique<DirectX::Keyboard>();
+	//m_pKeyboard = std::make_unique<DirectX::Keyboard>();
 }
 
 
@@ -210,7 +197,7 @@ int D3dClass::InitD3d11(HWND hwnd, int screenWidth, int screenHeight)
 }
 
 
-void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath, const D3D11_INPUT_ELEMENT_DESC* _inputLayout, UINT _numelement)
+void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath)
 {
 	//用来查错的Blob对象
 	ComPtr<ID3DBlob> pErrorMessage;
@@ -240,7 +227,7 @@ void D3dClass::InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePat
 
 	//3.设置输入布局(Input Layout)-即定义: 读取编译好的着色器的方法
 	ComPtr<ID3D11InputLayout> pInputLayout;
-	(pDevice->CreateInputLayout(_inputLayout, _numelement,//ARRAYSIZE(_inputLayout),
+	HR(pDevice->CreateInputLayout(VertexPosNormalColor::inputLayout, ARRAYSIZE(VertexPosNormalColor::inputLayout),//ARRAYSIZE(_inputLayout),
 		pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), pInputLayout.GetAddressOf()));
 
 	pContext->IASetInputLayout(pInputLayout.Get());   // [In]输入布局
@@ -290,13 +277,27 @@ bool D3dClass::ResetMesh(const Geometry::MeshData<VertexPosNormalColor>& meshDat
 	return true;
 }
 
+bool D3dClass::InitEffect()
+{
+	ComPtr<ID3DBlob> blob;
 
+	// 创建顶点着色器
+	HR(CreateShaderFromFile(L"../shader/Light_VS.cso", L"../shader/Light_VS.hlsl", "main", "vs_5_0", blob.ReleaseAndGetAddressOf()));
+	HR(pDevice->CreateVertexShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, pVertexShader.GetAddressOf()));
+	// 创建并绑定顶点布局
+	HR(pDevice->CreateInputLayout(VertexPosNormalColor::inputLayout, ARRAYSIZE(VertexPosNormalColor::inputLayout),
+		blob->GetBufferPointer(), blob->GetBufferSize(), m_pVertexLayout.GetAddressOf()));
+
+	// 创建像素着色器
+	HR(CreateShaderFromFile(L"../shader/Light_PS.cso", L"../shader/Light_PS.hlsl", "main", "ps_5_0", blob.ReleaseAndGetAddressOf()));
+	HR(pDevice->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, pPixelShader.GetAddressOf()));
+
+	pContext->IASetInputLayout(m_pVertexLayout.Get());
+	return true;
+}
 
 void D3dClass::InitLightResource()
 {
-	//InitShader_CompileInRunTime(L"../shader/Light_VS.hlsl", L"../shader/Light_PS.hlsl", 
-	//	VertexPosNormalColor::inputLayout, ARRAYSIZE(VertexPosNormalColor::inputLayout));
-
 	// ******************
 	// 初始化网格模型
 	//
@@ -383,7 +384,7 @@ void D3dClass::InitLightResource()
 
 	// 设置图元类型，设定输入布局
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pContext->IASetInputLayout(m_pVertexLayout.Get());
+	//pContext->IASetInputLayout(m_pVertexLayout.Get());
 	// 将着色器绑定到渲染管线
 	pContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
 	// VS常量缓冲区对应HLSL寄存于b0的常量缓冲区
@@ -394,17 +395,17 @@ void D3dClass::InitLightResource()
 }
 
 
-void D3dClass::UpdateScene(float dt)
+void D3dClass::UpdateScene(float dt, Keyboard::State& state)
 {
 	using namespace DirectX;
 	static float phi = 0.0f, theta = 0.0f;
-	phi += 0.0001f, theta += 0.00015f;
+	phi += 0.01f, theta += 0.015f;
 	XMMATRIX W = XMMatrixRotationX(phi) * XMMatrixRotationY(theta);
 	m_VSConstantBuffer.world = XMMatrixTranspose(W);
 	m_VSConstantBuffer.worldInvTranspose = XMMatrixTranspose(InverseTranspose(W));
 
 	// 键盘切换灯光类型
-	Keyboard::State state = m_pKeyboard->GetState();
+	//Keyboard::State state = m_pKeyboard->GetState();
 	m_KeyboardTracker.Update(state);
 	if (m_KeyboardTracker.IsKeyPressed(Keyboard::D1))
 	{
@@ -469,16 +470,16 @@ void D3dClass::DrawScene()
 	assert(pContext);
 	assert(pSwap);
 
-	static float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };    // RGBA = (0,0,0,255)
-	pContext->ClearRenderTargetView(pRenderTargetView.Get(), black);
-	pContext->ClearDepthStencilView(pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	//static float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };    // RGBA = (0,0,0,255)
+	//pContext->ClearRenderTargetView(pRenderTargetView.Get(), black);
+	//pContext->ClearDepthStencilView(pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// 绘制三角形
 	//pContext->Draw(3, 0);
-	pContext->DrawIndexed(36, 0, 0);
+	pContext->DrawIndexed(m_IndexCount, 0, 0);
 
 
-	HR(pSwap->Present(0, 0));
+	//HR(pSwap->Present(0, 0));
 }
 
 float D3dClass::AspectRatio()

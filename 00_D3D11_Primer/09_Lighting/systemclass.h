@@ -33,10 +33,11 @@ private:
 	int m_height;
 
 	std::unique_ptr<D3dClass>d3d;
-	std::unique_ptr<DirectX::Mouse::ButtonStateTracker>m_MouseTracker;
+
+	DirectX::Mouse::ButtonStateTracker m_MouseTracker;
 	static std::unique_ptr<DirectX::Mouse>m_mouse;
 
-	std::unique_ptr<DirectX::Keyboard::KeyboardStateTracker>m_KeyboardTracker;
+	DirectX::Keyboard::KeyboardStateTracker m_KeyboardTracker;
 	static std::unique_ptr<DirectX::Keyboard>m_keyboard;
 
 	//D3dClass* d3d;

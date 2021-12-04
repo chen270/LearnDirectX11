@@ -23,7 +23,7 @@ public:
 	int InitD3d11(HWND hwnd, int screenWidth, int screenHeight);
 	int EndFrame();
 	int ClearBuffer(float r, float g, float b) noexcept;
-
+	bool InitEffect();
 private:
 	bool m_vsync_enabled;
 	int m_screenWidth;
@@ -47,11 +47,10 @@ private:
 
 public:
 	bool ResetMesh(const Geometry::MeshData<VertexPosNormalColor>& meshData);
-	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath, const D3D11_INPUT_ELEMENT_DESC* _inputLayout, UINT _numelement);
-	void UpdateScene(float dt);
+	void InitShader_CompileInRunTime(LPCWSTR vsFilePath, LPCWSTR psFilePath);
+	void UpdateScene(float dt, Keyboard::State& state);
 	void InitLightResource();
 	void DrawScene();
-
 private:
 	float AspectRatio();
 
@@ -91,7 +90,7 @@ private:
 	ComPtr<ID3D11PixelShader> pPixelShader;
 
 	DirectX::Keyboard::KeyboardStateTracker m_KeyboardTracker;
-	std::unique_ptr<DirectX::Keyboard>m_pKeyboard;
+	//std::unique_ptr<DirectX::Keyboard>m_pKeyboard;
 };
 
 #endif //__D3DCLASS_H__
