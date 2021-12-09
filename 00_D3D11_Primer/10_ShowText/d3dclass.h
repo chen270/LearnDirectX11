@@ -9,6 +9,9 @@
 #include "LightHelper.h"
 #include "misc/m_k/keyboard.h"
 #include "misc/m_k/mouse.h"
+#include <d2d1.h>
+#include <dwrite.h>
+
 using namespace DirectX;
 
 class D3dClass
@@ -23,6 +26,8 @@ public:
 	int InitD3d11(HWND hwnd, int screenWidth, int screenHeight);
 	int InitD3d11_DXGI(HWND hwnd, int screenWidth, int screenHeight);
 	void OnResize();
+	void OnResizeEx();
+	int InitDirect2D();
 
 	int EndFrame();
 	int ClearBuffer(float r, float g, float b) noexcept;
@@ -36,6 +41,10 @@ private:
 	template <class T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
+	// Direct2D
+	ComPtr<ID2D1Factory> m_pd2dFactory;							// D2D工厂
+	ComPtr<ID2D1RenderTarget> m_pd2dRenderTarget;				// D2D渲染目标
+	ComPtr<IDWriteFactory> m_pdwriteFactory;					// DWrite工厂
 
 	//D3d设备三要素
 	ComPtr<ID3D11Device>			pDevice			  = nullptr;//分配内存，创建资源
@@ -46,6 +55,10 @@ private:
 	ComPtr<ID3D11Device1> m_pd3dDevice1;						// D3D11.1设备
 	ComPtr<ID3D11DeviceContext1> m_pd3dImmediateContext1;		// D3D11.1设备上下文
 	ComPtr<IDXGISwapChain1> m_pSwapChain1;						// D3D11.1交换链
+
+	ComPtr<ID2D1SolidColorBrush> m_pColorBrush;	    // 单色笔刷
+	ComPtr<IDWriteFont> m_pFont;					// 字体
+	ComPtr<IDWriteTextFormat> m_pTextFormat;		// 文本格式
 
 	//渲染目标视图
 	ComPtr<ID3D11RenderTargetView>  pRenderTargetView = nullptr;
@@ -59,6 +72,7 @@ public:
 	void UpdateScene(float dt, Keyboard::State& state);
 	void InitLightResource();
 	void DrawScene();
+	void DrawDWrite();
 private:
 	float AspectRatio();
 
