@@ -336,6 +336,16 @@ float D3dClass::AspectRatio()
 	return static_cast<float>(m_screenWidth) / m_screenHeight;
 }
 
+bool D3dClass::InitDirect2D()
+{
+	HR(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, m_pd2dFactory.GetAddressOf()));
+	HR(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+		reinterpret_cast<IUnknown**>(m_pdwriteFactory.GetAddressOf())));
+
+	return true;
+}
+
+
 int D3dClass::InitD3d11_DXGI(HWND hwnd, int screenWidth, int screenHeight)
 {
 	m_screenWidth = screenWidth;
