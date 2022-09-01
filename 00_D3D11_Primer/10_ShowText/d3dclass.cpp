@@ -331,20 +331,33 @@ void D3dClass::DrawScene()
 	//HR(pSwap->Present(0, 0));
 }
 
+void D3dClass::DrawDWrite()
+{
+	assert(pContext);
+	assert(pSwap);
+
+	// 绘制Direct2D部分
+	if (m_pd2dRenderTarget != nullptr)
+	{
+		m_pd2dRenderTarget->BeginDraw();
+		std::wstring textStr = L"切换灯光类型: 1-平行光 2-点光 3-聚光灯\n"
+			"切换模型: Q-立方体 W-球体 E-圆柱体 R-圆锥体\n"
+			"S-切换模式 当前模式: ";
+		if (m_IsWireframeMode)
+			textStr += L"线框模式";
+		else
+			textStr += L"面模式";
+		m_pd2dRenderTarget->DrawTextW(textStr.c_str(), textStr.size(), m_pTextFormat.Get(),
+			D2D1_RECT_F{ 0.0f, 0.0f, 600.0f, 200.0f }, m_pColorBrush.Get());
+		HR(m_pd2dRenderTarget->EndDraw());
+	}
+}
+
+
 float D3dClass::AspectRatio()
 {
 	return static_cast<float>(m_screenWidth) / m_screenHeight;
 }
-
-bool D3dClass::InitDirect2D()
-{
-	HR(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, m_pd2dFactory.GetAddressOf()));
-	HR(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-		reinterpret_cast<IUnknown**>(m_pdwriteFactory.GetAddressOf())));
-
-	return true;
-}
-
 
 int D3dClass::InitD3d11_DXGI(HWND hwnd, int screenWidth, int screenHeight)
 {
@@ -502,7 +515,7 @@ int D3dClass::InitD3d11_DXGI(HWND hwnd, int screenWidth, int screenHeight)
 	// 可以禁止alt+enter全屏
 	dxgiFactory1->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
 
-	OnResize();
+	OnResizeEx();
 
 	return 0;
 }
@@ -665,4 +678,48 @@ void D3dClass::OnResize()
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	pContext->RSSetViewports(1, &vp);
+}
+
+void D3dClass::OnResizeEx()
+{
+	assert(m_pd2dFactory);
+	assert(m_pdwriteFactory);
+	// 释放D2D的相关资源
+	m_pColorBrush.Reset();
+	m_pd2dRenderTarget.Reset();
+
+	this->OnResize();
+
+	// 为D2D创建DXGI表面渲染目标
+	ComPtr<IDXGISurface> surface;
+	HR(pSwap->GetBuffer(0, __uuidof(IDXGISurface), reinterpret_cast<void**>(surface.GetAddressOf())));
+	D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+		D2D1_RENDER_TARGET_TYPE_DEFAULT,
+		D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED));
+	HRESULT hr = m_pd2dFactory->CreateDxgiSurfaceRenderTarget(surface.Get(), &props, m_pd2dRenderTarget.GetAddressOf());
+	surface.Reset();
+
+	if (hr == E_NOINTERFACE)
+	{
+		OutputDebugStringW(L"\n警告：Direct2D与Direct3D互操作性功能受限，你将无法看到文本信息。现提供下述可选方法：\n"
+			L"1. 对于Win7系统，需要更新至Win7 SP1，并安装KB2670838补丁以支持Direct2D显示。\n"
+			L"2. 自行完成Direct3D 10.1与Direct2D的交互。详情参阅："
+			L"https://docs.microsoft.com/zh-cn/windows/desktop/Direct2D/direct2d-and-direct3d-interoperation-overview""\n"
+			L"3. 使用别的字体库，比如FreeType。\n\n");
+	}
+	else if (hr == S_OK)
+	{
+		// 创建固定颜色刷和文本格式
+		HR(m_pd2dRenderTarget->CreateSolidColorBrush(
+			D2D1::ColorF(D2D1::ColorF::White),
+			m_pColorBrush.GetAddressOf()));
+		HR(m_pdwriteFactory->CreateTextFormat(L"宋体", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+			DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 20, L"zh-cn",
+			m_pTextFormat.GetAddressOf()));
+	}
+	else
+	{
+		// 报告异常问题
+		assert(m_pd2dRenderTarget);
+	}
 }

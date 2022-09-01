@@ -32,9 +32,15 @@ int SystemClass::Init()
 	res = InitWindow(m_width, m_height);
 	CHECK_RES(res, "InitWindow error");
 
-	//2.D3d
-	res = d3d->InitD3d11(this->m_hwnd, m_width, m_height);
+	//2.d2d
+	res = d3d->InitDirect2D();
+	CHECK_RES(res, "InitDirect2D error");
+
+	//3.D3d
+	res = d3d->InitD3d11_DXGI(this->m_hwnd, m_width, m_height);
 	CHECK_RES(res, "InitD3d11 error");
+
+
 
 	// Mouse & Keyboard
 	//m_mouse->SetWindow(this->m_hwnd);
@@ -78,7 +84,9 @@ int SystemClass::Run()
 			d3d->ClearBuffer(0.0f, 0.0f, 0.0f);
 			d3d->UpdateScene(m_time.Peek(), m_keyboard->GetState());
 			//d3d->ClearBuffer(0.5f, 0.5f, 0.5f);
+
 			d3d->DrawScene();
+			d3d->DrawDWrite();
 			d3d->EndFrame();
 		}
 	}
