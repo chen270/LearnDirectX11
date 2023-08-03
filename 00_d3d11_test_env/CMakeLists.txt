@@ -1,8 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.8.0)
 
 
-PROJECT(RenderToTex)
-SET(TARGET "RenderToTex")
+PROJECT(RenderToTex_TestEnv)
+SET(TARGET "RenderToTex_TestEnv")
 
 add_compile_definitions(UNICODE _UNICODE)
 
@@ -67,6 +67,14 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${INSTALL_PATH})
 # ADD_LIBRARY(${TARGET} ${ALL_SOURCES})
 ADD_EXECUTABLE(${TARGET} ${ALL_SOURCES}) #只有在 add_executable() 中的文件才会被 source_group 分组
 
+
+# 设置MSVC的启动项，否则Cmake生成的工程默认启动的工程永远是ALL_BUILD
+if (MSVC)
+     # Set the startup project .
+    if (NOT ${CMAKE_VERSION} VERSION_LESS "3.6.0")
+          set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+    endif ()
+endif (MSVC)
 
 TARGET_LINK_LIBRARIES(${TARGET} "d3d11.lib" "dxgi.lib" "dxguid.lib" "D3DCompiler.lib" "winmm.lib")
 # TARGET_LINK_LIBRARIES(${TARGET} "${PROJECT_SOURCE_DIR}/protoc/libprotobufd.lib")
