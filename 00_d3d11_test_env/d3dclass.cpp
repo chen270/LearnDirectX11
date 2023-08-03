@@ -31,92 +31,92 @@ D3dClass::~D3dClass()
 int D3dClass::RenderToTexture()
 {
     HRESULT hr = S_FALSE;
-    Vertex vertices[] =			// 顶点数组
-    {
-        DirectX::XMFLOAT3(0.0f, 0.3f, 0.3f),
-        DirectX::XMFLOAT3(0.3f, -0.3f, 0.3f),
-        DirectX::XMFLOAT3(-0.3f, -0.3f, 0.3f),
-    };
 
 #if 1
     static ID3D11Texture2D* srcTexture2D = nullptr;
     static ID3D11Texture2D* dstTexture2D = nullptr;
     static ID3D11RenderTargetView* dstRenderTargetView = nullptr;
-	static int dstW = 0;
-	static int dstH = 0;
-	if (srcTexture2D != nullptr)
-		return -1;
+    static int dstW = 0;
+    static int dstH = 0;
+    if (srcTexture2D != nullptr)
+        return -1;
 
-        ID3D11Resource* tex;
-        ID3D11ShaderResourceView* testShaderResView = nullptr;
-        hr = DirectX::CreateWICTextureFromFile(
-            pDevice,
-            L"../data/small.jpg",
-            &tex, &testShaderResView);
-        if (FAILED(hr))
-        {
-            MessageBox(NULL, L"ERROR::CreateWICTextureFromFile", L"Error", MB_OK);
-            return -1;
-        }
-        if (FAILED(tex->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&srcTexture2D)))
-        {
-            MessageBox(NULL, L"ERROR::QueryInterface pTexture2D", L"Error", MB_OK);
-            return false;
-        }
+    ID3D11Resource* tex;
+    ID3D11ShaderResourceView* testShaderResView = nullptr;
+    hr = DirectX::CreateWICTextureFromFile(
+        pDevice,
+        L"../data/small.jpg",
+        &tex, &testShaderResView);
+    if (FAILED(hr))
+    {
+        MessageBox(NULL, L"ERROR::CreateWICTextureFromFile", L"Error", MB_OK);
+        return -1;
+    }
+    if (FAILED(tex->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&srcTexture2D)))
+    {
+        MessageBox(NULL, L"ERROR::QueryInterface pTexture2D", L"Error", MB_OK);
+        return false;
+    }
 
-        D3D11_TEXTURE2D_DESC srcTexDesc;
-		srcTexture2D->GetDesc(&srcTexDesc);
+    D3D11_TEXTURE2D_DESC srcTexDesc;
+    srcTexture2D->GetDesc(&srcTexDesc);
 
-        D3D11_TEXTURE2D_DESC dstTextureDesc = {};
-        // Setup the render target texture description.
-        dstTextureDesc.Width = srcTexDesc.Width;
-        dstTextureDesc.Height = srcTexDesc.Height;
-        dstTextureDesc.MipLevels = 1;
-        dstTextureDesc.ArraySize = 1;
-        dstTextureDesc.Format = srcTexDesc.Format;
-        dstTextureDesc.SampleDesc.Count = 1;
-        dstTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-        dstTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-        dstTextureDesc.CPUAccessFlags = 0; // D3D11_CPU_ACCESS_READ;
-        dstTextureDesc.MiscFlags = 0;
+    D3D11_TEXTURE2D_DESC dstTextureDesc = {};
+    // Setup the render target texture description.
+    dstTextureDesc.Width = srcTexDesc.Width;
+    dstTextureDesc.Height = srcTexDesc.Height;
+    dstTextureDesc.MipLevels = 1;
+    dstTextureDesc.ArraySize = 1;
+    dstTextureDesc.Format = srcTexDesc.Format;
+    dstTextureDesc.SampleDesc.Count = 1;
+    dstTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+    dstTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    dstTextureDesc.CPUAccessFlags = 0; // D3D11_CPU_ACCESS_READ;
+    dstTextureDesc.MiscFlags = 0;
 
-        hr = pDevice->CreateTexture2D(&dstTextureDesc, NULL, &dstTexture2D);
-        if (FAILED(hr))
-        {
-			MessageBox(NULL, L"ERROR::CreateTexture2D dst", L"Error", MB_OK);
-            return -1;
-        }
+    hr = pDevice->CreateTexture2D(&dstTextureDesc, NULL, &dstTexture2D);
+    if (FAILED(hr))
+    {
+        MessageBox(NULL, L"ERROR::CreateTexture2D dst", L"Error", MB_OK);
+        return -1;
+    }
 
-		pContext->CopyResource(dstTexture2D, srcTexture2D);
-		//hr = DirectX::SaveWICTextureToFile(pContext, dstTexture2D, GUID_ContainerFormatPng, L"output2.png");
+    // Test-----直接拷贝
+    //pContext->CopyResource(dstTexture2D, srcTexture2D);
+    //hr = DirectX::SaveWICTextureToFile(pContext, dstTexture2D, GUID_ContainerFormatPng, L"output2.png");
 
+    // rtv
+    // Setup the description of the render target view.
+    D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+    renderTargetViewDesc.Format = srcTexDesc.Format;
+    renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-		// rtv
-        // Setup the description of the render target view.
-		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-        renderTargetViewDesc.Format = srcTexDesc.Format;
-        renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-        renderTargetViewDesc.Texture2D.MipSlice = 0;
+    // Create the render target view.
+    hr = pDevice->CreateRenderTargetView(dstTexture2D, &renderTargetViewDesc, &dstRenderTargetView);
+    if (FAILED(hr))
+    {
+        MessageBox(NULL, L"ERROR::CreateRenderTargetView dst", L"Error", MB_OK);
+        return -1;
+    }
 
-        // Create the render target view.
-        hr = pDevice->CreateRenderTargetView(dstTexture2D, &renderTargetViewDesc, &dstRenderTargetView);
-        if (FAILED(hr))
-        {
-            MessageBox(NULL, L"ERROR::CreateRenderTargetView dst", L"Error", MB_OK);
-            return -1;
-        }
-
-		dstW = srcTexDesc.Width;
-		dstH = srcTexDesc.Height;
+    dstW = srcTexDesc.Width;
+    dstH = srcTexDesc.Height;
 
 #endif
 
+    const VertexPosTex vertices[4]{
+		{ DirectX::XMFLOAT3(-1.0f, -1.0f, 1.0f), DirectX::XMFLOAT2(0.0f,1.0f) },
+		{ DirectX::XMFLOAT3(-1.0f, 1.0f, 1.0f), DirectX::XMFLOAT2(0.0f,0.0f) },
+		{ DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f) , DirectX::XMFLOAT2(1.0f,0.0f) },
+		{ DirectX::XMFLOAT3(1.0f, -1.0f, 1.0f), DirectX::XMFLOAT2(1.0f,1.0f) }
+    };
     //start ***********************************************/
     //1.顶点缓冲描述
     D3D11_BUFFER_DESC vertexBufferDesc;
     ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
     vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// 默认使用
-    vertexBufferDesc.ByteWidth = sizeof(Vertex) * 3;	// 大小（我们有三个顶点）
+	vertexBufferDesc.ByteWidth = sizeof(VertexPosTex) * 4;
     vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// Bind
 
     //2.顶点数据
@@ -130,61 +130,130 @@ int D3dClass::RenderToTexture()
     CHECK_D3D_ERROR(hr);
 
     //4.为顶点缓冲区设置 CPU 描述符handle，分配到管道
-    UINT stride = sizeof(Vertex);
+    UINT stride = sizeof(VertexPosTex);
     UINT offset = 0;
     pContext->IASetVertexBuffers(0, 1, &pVBO, &stride, &offset);
 
-    //5.创建 vertex shader
+    // 5.IBO 设置索引缓冲区描述
+	ID3D11Buffer* pIBO = nullptr;
+    const unsigned short indices[6] = { 0, 1, 2,
+                          0, 2, 3 };
+	D3D11_BUFFER_DESC indexBufferDesc;
+	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
+	indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBufferDesc.ByteWidth = sizeof(indices[0]) * 6;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+
+	// 5.1 新建索引缓冲区
+	D3D11_SUBRESOURCE_DATA indexData;
+	indexData.pSysMem = indices;
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+	hr = pDevice->CreateBuffer(&indexBufferDesc, &indexData, &pIBO);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"ERROR::Create IBO Buffer(Test)", L"Error", MB_OK);
+		return -1;
+	}
+	pContext->IASetIndexBuffer(pIBO, DXGI_FORMAT_R16_UINT, 0);
+    // IBO-end *************************************************/
+
+
+    //6.创建 vertex shader
     ID3D11VertexShader* pVertexShader;
     ID3DBlob* pBlob;//存储shader中的内容
-    hr = D3DReadFileToBlob(L"../bin/vs.cso", &pBlob);
+    hr = D3DReadFileToBlob(L"../bin/tex_vs.cso", &pBlob);
     CHECK_D3D_ERROR(hr);
     hr = pDevice->CreateVertexShader(pBlob->GetBufferPointer(),
         pBlob->GetBufferSize(), nullptr, &pVertexShader);
     CHECK_D3D_ERROR(hr);
 
-    //6.绑定 vertex shader 到渲染管线
+    //7.绑定 vertex shader 到渲染管线
     pContext->VSSetShader(pVertexShader, nullptr, 0);
 
-    //7.告诉CPU如何从shader中读取数据
+    //8.告诉CPU如何从shader中读取数据
     ID3D11InputLayout* pInputLayout;
     //在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
-    const D3D11_INPUT_ELEMENT_DESC layout[]{
-        {"POSITIONT", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	const D3D11_INPUT_ELEMENT_DESC layout[] = {
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
     const UINT numElements = ARRAYSIZE(layout);
     hr = pDevice->CreateInputLayout(layout, numElements,
         pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pInputLayout);
     CHECK_D3D_ERROR(hr);
 
-    //8.绑定 layout
+    //9.绑定 layout
     pContext->IASetInputLayout(pInputLayout);
 
     //end *************************************************/
 
+    //10.创建一个采样器描述
+	ID3D11SamplerState* pTestSamplerState;
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.MipLODBias = 0.0f;
+    samplerDesc.MaxAnisotropy = 1;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+    samplerDesc.BorderColor[0] = 0;
+    samplerDesc.BorderColor[1] = 0;
+    samplerDesc.BorderColor[2] = 0;
+    samplerDesc.BorderColor[3] = 0;
+    samplerDesc.MinLOD = 0;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    // 使用采样器描述创建一个指针对象：
+    hr = pDevice->CreateSamplerState(&samplerDesc, &pTestSamplerState);
+    if (FAILED(hr))
+    {
+        MessageBox(NULL, L"ERROR::CreateSamplerState", L"Error", MB_OK);
+        return -1;
+    }
+
+	//11.input srv
+	ID3D11ShaderResourceView* srcShaderResourceView;
+	D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+    shaderResourceViewDesc.Format = srcTexDesc.Format;
+    shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
+    shaderResourceViewDesc.Texture2D.MipLevels = 1;
+    hr = pDevice->CreateShaderResourceView(srcTexture2D, &shaderResourceViewDesc, &srcShaderResourceView);
+	if (FAILED(hr))
+	{
+        MessageBox(NULL, L"ERROR::CreateSamplerState", L"Error", MB_OK);
+        return -1;
+	}
 
     //start ***********************************************/
-    //9.创建 pixel shader
+    //12.创建 pixel shader
     ID3D11PixelShader* pPixelShader;
     ID3DBlob* pBlob_PS;//存储shader中的内容
-    hr = D3DReadFileToBlob(L"../bin/ps.cso", &pBlob_PS);
+    hr = D3DReadFileToBlob(L"../bin/tex_ps.cso", &pBlob_PS);
     CHECK_D3D_ERROR(hr);
     hr = pDevice->CreatePixelShader(pBlob_PS->GetBufferPointer(),
         pBlob_PS->GetBufferSize(), nullptr, &pPixelShader);
     CHECK_D3D_ERROR(hr);
 
-    //10.绑定 pixel shader 到渲染管线
+    //13.绑定 pixel shader 到渲染管线
     pContext->PSSetShader(pPixelShader, nullptr, 0);
     //end *************************************************/
 
-    //11.指定输出目标（渲染对象）
+    pContext->PSSetShaderResources(0, 1, &srcShaderResourceView); // input texture
+    pContext->PSSetSamplers(0, 1, &pTestSamplerState);
+
+    //14.指定输出目标（渲染对象）
 #if 1
 	pContext->OMSetRenderTargets(1, &dstRenderTargetView, nullptr);
 
     //三角形list
     pContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    //12.设置视口变换
+    //15.设置视口变换
     D3D11_VIEWPORT vp;// 视口
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
@@ -194,8 +263,10 @@ int D3dClass::RenderToTexture()
     vp.MaxDepth = 1.0f;
     pContext->RSSetViewports(1, &vp);
 
-    pContext->Draw(3, 0);//三个顶点，从0号顶点开始
+    //pContext->Draw(3, 0);//三个顶点，从0号顶点开始
+	pContext->DrawIndexed(6, 0, 0);
 
+	//16.保存结果
     hr = DirectX::SaveWICTextureToFile(pContext, dstTexture2D, GUID_ContainerFormatPng, L"output2.png");
 #else
     pContext->OMSetRenderTargets(1, &pRenderTargetView, nullptr);
@@ -268,7 +339,7 @@ int D3dClass::DrawTriangle()
 	ID3D11InputLayout* pInputLayout;
 	//在 DirectX 代码中创建一个 InputLayout 来描述 input-assembler 阶段的数据。
 	const D3D11_INPUT_ELEMENT_DESC layout[]{
-		{"POSITIONT", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"POSITIONT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
 	const UINT numElements = ARRAYSIZE(layout);
 	hr = pDevice->CreateInputLayout(layout, numElements, 

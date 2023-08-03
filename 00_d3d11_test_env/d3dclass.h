@@ -37,6 +37,11 @@ private:
 	struct Vertex {				// 定义一个顶点结构体，暂时就一个坐标属性
 		DirectX::XMFLOAT3 pos;
 	};
+
+    struct VertexPosTex {
+        DirectX::XMFLOAT3 pos;
+        DirectX::XMFLOAT2 tex;
+    };
 };
 
 #endif //__D3DCLASS_H__
