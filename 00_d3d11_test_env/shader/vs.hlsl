@@ -1,22 +1,10 @@
-
-struct VSOut
+//输入: 顶点数据
+//输出: 顶点位置，以便在光栅化该位置
+//注:Position为语义，名称不固定,标记为输入; 
+//SV_Position标记为输出
+float4 main(float3 pos : POSITIONT ): SV_Position
 {
-    float4 color : COLOR;
-    float4 pos : SV_Position;
-};
-
-cbuffer CBuf
-{
-    /*row_major*/ matrix transform;
-}
-
-VSOut main(float3 pos : POSITION, float4 color : COLOR)
-{
-    VSOut vso;
-    vso.pos = float4(pos, 1.0f);
-    //vso.pos = mul(float4(pos, 1.0f), transform);
-    vso.color = color;
-    return vso;
+    return float4(pos, 1.0f);
 }
 
 ////教程用法

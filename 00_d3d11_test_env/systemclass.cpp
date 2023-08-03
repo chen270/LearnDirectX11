@@ -7,7 +7,7 @@ if (res < 0) { perror(str); exit(-1); } \
 
 SystemClass::SystemClass()
 {
-	m_width = 600;
+	m_width = 800;
 	m_height = 600;
 
 	d3d = new D3dClass();
@@ -24,24 +24,6 @@ int SystemClass::Init()
 	//2.D3d
 	res = d3d->InitD3d11(this->m_hwnd, m_width, m_height);
 	CHECK_RES(res, "InitD3d11 error");
-
-	//res = d3d->InitShader(L"../bin/triangle_vs.cso", L"../bin/triangle_ps.cso");
-	//res = d3d->InitShader(L"../bin/vs.cso", L"../bin/ps.cso");
-	//res = d3d->InitShaderTex(L"../bin/tex_vs.cso", L"../bin/tex_ps.cso");
-	////res = d3d->InitResource();
-	////d3d->InitTriangle();
-	//d3d->InitRectWithTex();
-	d3d->InitTestResource();
-	d3d->DrawTestTex(nullptr, 0, 0);
-
-    // Test
-    //d3d->InitSubTexResource();
-    //d3d->DrawSubTex(1920, 1080);
-
-
-	d3d->InitShaderTexEx();
-	//d3d->SetTex(L"../data/cheese.jpg"); // 读取图片生成
-	d3d->SetTex(d3d->mTestDstTex2d); // 渲染生成
 
 	return 0;
 }
@@ -66,19 +48,14 @@ int SystemClass::Run()
 		else
 		{
 			//DirectX11
-			//当前画出的图形随着窗口的大小而改变
 			//const float c = sin(m_time.Peek()) / 2.0f + 0.5f;
 			d3d->ClearBuffer(0.5f,0.5f, 0.5f);
-			//d3d->DrawTriangle();
-			//d3d->DrawRect(m_time.Peek());
-			/*d3d->DrawCube(
-				-m_time.Peek(),
-				0.0f,
-				0.0f
-			);*/
-			//d3d->UpdateRectRotate(m_time.Peek());
-			d3d->DrawScene();
-			//d3d->DrawRectWithTex();
+
+			// Test
+			d3d->RenderToTexture();
+
+			d3d->DrawTriangle();
+			//d3d->DrawRect();
 			d3d->EndFrame();
 		}
 	}

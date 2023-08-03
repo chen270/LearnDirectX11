@@ -1,5 +1,5 @@
-// åƒç´ ç€è‰²å™¨
-float4 main(float4 color : COLOR) : SV_Target
+// ÏñËØ×ÅÉ«Æ÷
+float4 main() : SV_Target
 {
-    return color;
+    return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

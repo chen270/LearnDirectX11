@@ -1,8 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.8.0)
 
 
-PROJECT(d3d11_test)
-SET(TARGET "d3d11_test")
+PROJECT(RenderToTex)
+SET(TARGET "RenderToTex")
 
 add_compile_definitions(UNICODE _UNICODE)
 
@@ -23,6 +23,7 @@ LINK_DIRECTORIES("${PROJECT_SOURCE_DIR}/bin") #指定链接路径
 
 # add_definitions("-I<path to directx headers>")
 INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}")
+INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/utils")
 # INCLUDE_DIRECTORIES("C:/Program Files (x86)/Windows Kits/10/Include/10.0.19041.0/um")
 
 
@@ -31,10 +32,10 @@ FILE(GLOB SRC_LIST "./*.cpp" "./utils/*.cpp")
 SOURCE_GROUP("source" FILES ${SRC_LIST})
 
 
-FILE(GLOB  HEAD_LIST "./*.h" "./utils/*.h")
+FILE(GLOB  HEAD_LIST "./*.h")
 SOURCE_GROUP("include" FILES ${HEAD_LIST})
 
-FILE(GLOB  SHADER_LIST "./shader/*.*")
+FILE(GLOB  SHADER_LIST "./shader/*.hlsl")
 SOURCE_GROUP("shader" FILES ${SHADER_LIST})
 
 # 设置着色器类型
@@ -66,13 +67,6 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${INSTALL_PATH})
 # ADD_LIBRARY(${TARGET} ${ALL_SOURCES})
 ADD_EXECUTABLE(${TARGET} ${ALL_SOURCES}) #只有在 add_executable() 中的文件才会被 source_group 分组
 
-# 设置MSVC的启动项，否则Cmake生成的工程默认启动的工程永远是ALL_BUILD
-if (MSVC)
-     # Set the startup project .
-    if (NOT ${CMAKE_VERSION} VERSION_LESS "3.6.0")
-          set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-    endif ()
-endif (MSVC)
 
 TARGET_LINK_LIBRARIES(${TARGET} "d3d11.lib" "dxgi.lib" "dxguid.lib" "D3DCompiler.lib" "winmm.lib")
 # TARGET_LINK_LIBRARIES(${TARGET} "${PROJECT_SOURCE_DIR}/protoc/libprotobufd.lib")
